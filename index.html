@@ -6613,7 +6613,7 @@ async function l2SetupThink(){
     fb.hidden = false;
     fb.className = 'l2-think-fb l0-note ' + (ok ? 'ok' : 'ng');
     if(ok){
-      done[q] = true;
+      done[q] = true; box.dataset.solved = done.filter(Boolean).length;
       fb.innerHTML = `✓ ${QUESTIONS[q].ok}` + (q === 0 ? '<br>👉 이제 <b>질문 2</b>도 풀어 보자.' : (done[0] ? '<br>🎉 두 질문을 모두 만족하는 것은 <b>①</b>뿐이야. ①은 <b>정팔면체</b>라고 해. 이런 다면체를 정다면체라고 불러!' : ''));
       $('.l2-q-text', box).innerHTML = QUESTIONS[q].q + ' <span class="l2-done">✓ 해결</span>';
     }else{
@@ -8003,7 +8003,7 @@ async function l3SetupThink(){
         row.querySelectorAll('.l3-opt').forEach(x => { if(x.dataset.v === it.ans) x.classList.add('ok'); else if(x.dataset.v === pick) x.classList.add('ng'); });
         fb.className = 'fb ' + (ok ? 'ok' : 'ng');
         fb.innerHTML = (ok ? '✓ 예상이 맞았어! ' : `✗ 예상과 달랐네. `) + it.expl;
-        nameEl.textContent = `${it.label} → ${it.ans}`;
+        nameEl.textContent = `${it.label} → ${it.ans}`; row.dataset.tried = '1';
       };
       if(rev){ rev.visible(true); rev.set(pr.prof); rev.setPhi(0); nameEl.textContent = `${it.label}을 돌리는 중…`; rev.play(2.6, null, finish); }
       else finish();
@@ -10493,7 +10493,7 @@ async function l6SetupCubeSplit(wrap){
 function l6SetupConcept(){
   const tb = document.getElementById('l6-think-box');
   if(tb){ const b = $('[data-a="reveal"]', tb), h = $('.l1-hint', tb);
-    b.addEventListener('click', () => { const on = !h.classList.contains('shown'); h.classList.toggle('shown', on); b.textContent = on ? '🙈 숨기기' : '✓ 확인'; }); }
+    b.addEventListener('click', () => { const on = !h.classList.contains('shown'); h.classList.toggle('shown', on); if(on) tb.dataset.seen = '1'; b.textContent = on ? '🙈 숨기기' : '✓ 확인'; }); }
   const box = document.querySelector('#lesson-6 .l6-examples'); if(!box) return;
   const EX = [
     { title:'', q:'밑면이 한 변의 길이가 5 cm인 정사각형이고, 높이가 6 cm인 사각뿔의 부피를 구해 보자.',
@@ -10593,7 +10593,7 @@ async function l6AddCupsCard(){
       ${CUPS.map(c => `<tr class="${c === best ? 'win' : ''}"><th>${c === best ? '🏆 ' : ''}${c.id}</th><td>${c.kind === 'cyl' ? '원기둥' : '원뿔'}</td><td>${fmtV(c)}</td></tr>`).join('')}</tbody></table>`;
     cmsg.innerHTML = `${pick === best.id ? `✓ 예상이 맞았어! <b>${best.id}</b> 잔에 가장 많이 들어가.` : `✗ 예상은 <b>${pick}</b>였지만, 가장 많이 들어가는 잔은 <b>${best.id}</b>야.`}
       원뿔 모양 잔은 커 보여도 같은 밑면·높이인 원기둥의 $\\dfrac{1}{3}$밖에 담지 못해. <b>C</b>(원뿔)는 입구가 가장 넓어 커 보이지만 $98\\pi$로 <b>A</b>(원기둥)의 $100\\pi$보다 조금 적어!`;
-    renderMath(res); renderMath(cmsg);
+    renderMath(res); renderMath(cmsg); card.dataset.checked = '1';
     card.querySelectorAll('.l6-cup').forEach(b => { b.classList.toggle('ok', b.dataset.id === best.id); b.classList.toggle('ng', b.dataset.id === pick && pick !== best.id); });
   }
   chk.addEventListener('click', () => { if(!pick) return; fill = 0; filling = true; chk.disabled = true; res.innerHTML = ''; cmsg.innerHTML = '🥤 음료수를 채우는 중…'; if(!viewer.ok){ show(); return; } viewer.requestRender(); });
@@ -14019,23 +14019,53 @@ function clsCardDone(card){
 /** 소활동이 없는 활동의 완료: 보이는 입력 칸을 모두 채우고, 보이는 문제(답 고르기)에 모두 답했을 때.
     입력·문제가 없는 활동(예: 학습 목표)은 활동 아래쪽까지 살펴보면 완료 */
 const clsVisible = e => !!e.getClientRects().length && !e.closest('[hidden], [inert], .scratch, .cls-modal-wrap, .viewer-toolbar, .step-nav, .l0-simtabs');
+/* 소활동이 없는 활동마다 '완료' 조건을 정해 둔다. (정해 두지 않은 활동은 끝까지 살펴보면 완료) */
+const clsStore = k => safeStorage.get(k) === '1';
+const clsAll = (c, sel, ok) => { const a = [...c.querySelectorAll(sel)]; return a.length > 0 && a.every(x => x.matches(ok)); };
+const clsShown = (c, sel) => { const e = c.querySelector(sel); return !!e && !e.hidden; };
+const clsRowsDone = c => { const r = [...c.querySelectorAll('.l7-rows .l7-row')]; return r.length > 0 && r.every(x => x.matches('.ok, .ng')); };   // 예제: 모두 제출
+const CLS_TASKS = {
+  'lesson-0-think-card':   c => clsAll(c, '.l0-obj', '.solved'),                                  // 6개 물건 모두 맞히기
+  'lesson-0-concept-card': () => { try{ const v = JSON.parse(safeStorage.get(L0C_KEY) || '[]'); return v.length >= L0C_ITEMS.length && v.slice(0, L0C_ITEMS.length).every(Boolean); }catch(e){ return false; } },
+  'lesson-1-think-card':   c => clsShown(c, '.l1-jury-msg'),                                      // 주령구 면 14개 모두 찾기
+  'lesson-2-think-card':   c => +((c.querySelector('#l2-think') || {}).dataset || {}).solved >= 2,  // 질문 1·2 해결
+  'lesson-2-concept-card': c => clsStore('ipche-l2-concept') && clsShown(c, '.l2-why-done'),     // 개념 확인 + 정다면체가 아닌 이유
+  'lesson-3-think-card':   c => clsAll(c, '.l3-pred', '[data-tried]'),                            // 예상하고 돌려서 확인하기
+  'lesson-3-concept-card': () => clsStore('ipche-l3-concept'),
+  'lesson-4-sim-card':     c => { const e = c.querySelector('.l4-solved'); return !!e && +e.textContent >= L4_WORDS.length; },
+  'lesson-5-think-card':   c => clsAll(c, '.l5-tq', '.ok'),
+  'lesson-5-concept-card': clsRowsDone,
+  'lesson-6-think-card':   c => !!c.querySelector('.l6-pred-btn[aria-pressed="true"]'),
+  'lesson-6-concept-card': c => { const tb = c.querySelector('#l6-think-box'); return (!tb || tb.dataset.seen === '1') && clsRowsDone(c); },
+  'lesson-6-cups-card':    c => c.dataset.checked === '1',                                       // 잔 고르고 [부피 확인]
+  'lesson-8-think-card':   c => clsShown(c, '.l8-sum'),
+};
 function clsTaskDone(card){
   const doneSet = new Set(cls.seen.__done || []);
   if(doneSet.has(card.id)) return true;            // 한 번 마친 활동은 계속 완료
-  if(!card.getClientRects().length) return false;  // 보이지 않는 활동은 마쳤던 기록으로만 판단
-  const r = clsTaskCheck(card);
-  if(r){ doneSet.add(card.id); cls.seen.__done = [...doneSet]; jset(CLS_KEY.seen, cls.seen); }
+  const rule = CLS_TASKS[card.id];
+  const r = rule ? !!rule(card) : (cls.seen.__cards || []).includes(card.id);
+  if(r){ doneSet.add(card.id); cls.seen.__done = [...doneSet]; jset(CLS_KEY.seen, cls.seen); clsJustDone(card); }
   return r;
 }
-function clsTaskCheck(card){
-  const body = card.querySelector('.card-body') || card;
-  const ins = [...body.querySelectorAll('input[type="text"], textarea')].filter(i => clsVisible(i) && !i.readOnly && !i.disabled);
-  const groups = [...body.querySelectorAll('[role="group"]')].filter(g => clsVisible(g) && !g.matches('.segmented') && g.querySelectorAll('button').length > 1);
-  const slots = [...body.querySelectorAll('.cw-slot')].filter(clsVisible);
-  if(!ins.length && !groups.length && !slots.length) return (cls.seen.__cards || []).includes(card.id);
-  const answered = g => [...g.querySelectorAll('button')].some(b => clsOn(b) || b.matches('.ok, .ng, .is-correct, .is-wrong, [disabled]'));
-  return ins.every(i => i.value.trim()) && groups.every(answered) && slots.every(x => x.textContent.trim());
+/* 활동을 막 마쳤을 때: 다음 활동이 열렸음을 알림 */
+function clsJustDone(card){
+  if(!isStudent()) return;
+  const L = LESSONS[state.current], sec = L && document.getElementById(L.id); if(!sec || !sec.contains(card)) return;
+  const steps = collectLessonSteps(sec), i = steps.findIndex(c => c.card === card);
+  if(i >= 0 && steps[i + 1] && i === lessonStepState(L.id).reached && clsLock(steps[i + 1].card.id) === 'auto'){
+    const nb = sec.querySelectorAll('.step-btn')[i + 1], nm = nb && nb.querySelector('.sl') ? nb.querySelector('.sl').textContent.trim() : '';
+    setTimeout(() => toast(`✅ 활동 완료! 다음 활동${nm ? `(${nm})` : ''}이 열렸어요.`), 50);
+  }
+  clsStepRefresh();
 }
+/* 애니메이션이 끝난 뒤 완료되는 활동도 있으므로, 지금 활동의 완료 여부를 주기적으로 확인 */
+setInterval(() => {
+  if(!isStudent() || document.hidden) return;
+  const L = LESSONS[state.current], sec = L && document.getElementById(L.id); if(!sec) return;
+  const c = collectLessonSteps(sec)[lessonStepState(L.id).cur]; if(!c || /-quiz-card$/.test(c.card.id)) return;
+  if(!(cls.seen.__done || []).includes(c.card.id)) clsCardDone(c.card) && clsStepRefresh();
+}, 1000);
 /* 입력·문제가 없는 활동: 아래쪽(다음 버튼 줄)이 화면에 보이면 '살펴봄' */
 function clsMarkViewed(){
   if(!isStudent()) return;
@@ -14512,7 +14542,7 @@ if(startHash === '#finish' && allLessonsDone()) showFinish();
 clsStart();   // 첫 화면(학생·관리자) / 이어서 진행
 
 /* 다음 단계에서 콘솔·다른 스크립트로 쓰기 쉽게 내보내기 */
-Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
+Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
   completeLesson, goTo, renderMath, LESSON_CONTENT, LESSONS, normalizeAnswer, isInputCorrect, auditSolidCounts, countSolid, showFinish, showSolidAudit });
 </script>
 </body>
