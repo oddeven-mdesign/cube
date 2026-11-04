@@ -13545,7 +13545,7 @@ function goStep(id, i, { scroll=true } = {}){
   const n = collectLessonSteps(sec).length, st = lessonStepState(id);
   if(i < 0 || i >= n) return;
   const all = collectLessonSteps(sec);
-  if(!stepOpen(all, st, i)){ toast(clsLock(all[i].card.id) === 'lock' ? '🔒 활동 시작 전입니다. 이전 활동에 먼저 참여하세요.' : '🔒 앞 활동을 모두 마치면 열려요. (소활동을 하나씩 모두 살펴보자!)'); return; }
+  if(!stepOpen(all, st, i)){ toast(clsLock(all[i].card.id) === 'lock' ? '🔒 활동 시작 전입니다. 이전 활동에 먼저 참여하세요.' : '🔒 지금 활동을 모두 마치면 다음 활동이 열려요. (소활동·세부활동, 빈칸과 문제에 모두 참여해 보자!)'); return; }
   if(i !== st.cur){ stepReport(all[st.cur] && all[st.cur].card); const nc = all[i].card, own = CLS_OWN.find(d => d.card === nc.id);
     if(own) setTimeout(() => { const o = clsOwn(own); if(o){ clsEnter(`${own.card}:${o.cur}`); clsFill(`${own.card}:${o.cur}`, o.secs[o.cur]); clsOwnSync(o); } }, 300);
     else if(!nc.querySelector('.subtab-host')){ clsEnter(nc.id); setTimeout(() => clsFill(nc.id, nc), 60); } }
@@ -14010,7 +14010,46 @@ function clsSeenAll(host){
   return items.every(b => seen.has(b.dataset.k));
 }
 /** 단계(카드) 완료: 소활동 버튼이 있으면 모든 소활동을 한 번씩 열어 보았을 때 */
-function clsCardDone(card){ return [...card.querySelectorAll('.subtab-host')].every(h => clsSeenAll(h) && [...h.querySelectorAll(':scope > section.l0-sub')].every(clsDetailDone)) && clsOwnDone(card); }
+function clsCardDone(card){
+  if(/-quiz-card$/.test(card.id)) return true;
+  const hosts = [...card.querySelectorAll('.subtab-host')], own = CLS_OWN.some(d => d.card === card.id);
+  if(hosts.length || own) return hosts.every(h => clsSeenAll(h) && [...h.querySelectorAll(':scope > section.l0-sub')].every(clsDetailDone)) && clsOwnDone(card);
+  return clsTaskDone(card);   // 소활동이 없는 활동: 빈칸·문제에 모두 참여(없으면 끝까지 살펴보기)
+}
+/** 소활동이 없는 활동의 완료: 보이는 입력 칸을 모두 채우고, 보이는 문제(답 고르기)에 모두 답했을 때.
+    입력·문제가 없는 활동(예: 학습 목표)은 활동 아래쪽까지 살펴보면 완료 */
+const clsVisible = e => !!e.getClientRects().length && !e.closest('[hidden], [inert], .scratch, .cls-modal-wrap, .viewer-toolbar, .step-nav, .l0-simtabs');
+function clsTaskDone(card){
+  const doneSet = new Set(cls.seen.__done || []);
+  if(doneSet.has(card.id)) return true;            // 한 번 마친 활동은 계속 완료
+  if(!card.getClientRects().length) return false;  // 보이지 않는 활동은 마쳤던 기록으로만 판단
+  const r = clsTaskCheck(card);
+  if(r){ doneSet.add(card.id); cls.seen.__done = [...doneSet]; jset(CLS_KEY.seen, cls.seen); }
+  return r;
+}
+function clsTaskCheck(card){
+  const body = card.querySelector('.card-body') || card;
+  const ins = [...body.querySelectorAll('input[type="text"], textarea')].filter(i => clsVisible(i) && !i.readOnly && !i.disabled);
+  const groups = [...body.querySelectorAll('[role="group"]')].filter(g => clsVisible(g) && !g.matches('.segmented') && g.querySelectorAll('button').length > 1);
+  const slots = [...body.querySelectorAll('.cw-slot')].filter(clsVisible);
+  if(!ins.length && !groups.length && !slots.length) return (cls.seen.__cards || []).includes(card.id);
+  const answered = g => [...g.querySelectorAll('button')].some(b => clsOn(b) || b.matches('.ok, .ng, .is-correct, .is-wrong, [disabled]'));
+  return ins.every(i => i.value.trim()) && groups.every(answered) && slots.every(x => x.textContent.trim());
+}
+/* 입력·문제가 없는 활동: 아래쪽(다음 버튼 줄)이 화면에 보이면 '살펴봄' */
+function clsMarkViewed(){
+  if(!isStudent()) return;
+  const L = LESSONS[state.current], sec = L && document.getElementById(L.id); if(!sec) return;
+  const st = lessonStepState(L.id), c = collectLessonSteps(sec)[st.cur]; if(!c) return;
+  const nav = c.card.querySelector(':scope > .step-nav') || c.card, r = nav.getBoundingClientRect();
+  if(r.top < window.innerHeight && r.bottom > 0){
+    const v = new Set(cls.seen.__cards || []); if(!v.has(c.card.id)){ v.add(c.card.id); cls.seen.__cards = [...v]; jset(CLS_KEY.seen, cls.seen); clsStepRefresh(); }
+  }
+}
+let clsStepRaf = 0;
+function clsStepRefresh(){ if(clsStepRaf) return; clsStepRaf = requestAnimationFrame(() => { clsStepRaf = 0; const L = LESSONS[state.current]; if(L && isStudent()) refreshLessonSteps(L.id); }); }
+window.addEventListener('scroll', () => clsMarkViewed(), { passive:true });
+['input', 'click'].forEach(t => document.addEventListener(t, () => { if(isStudent()) setTimeout(() => { clsMarkViewed(); clsStepRefresh(); }, 120); }, true));
 /* ---------------------------------------------------------------------
    세부활동: 소활동 안에서 하나씩 골라 해 보는 항목(예: 삼각뿔·사각뿔·오각뿔·원뿔)
    학생(자동 모드)은 세부활동을 모두 한 번씩 해 보아야 다음 소활동으로 넘어갈 수 있다.
