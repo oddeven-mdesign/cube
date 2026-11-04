@@ -2567,6 +2567,12 @@ body.cls-no-pad .scratch-toggle{display:none!important}
 @media (max-width:560px){.who-out{position:static;margin:6px 0 0 auto;display:block}}
 
 #teacherBtn{display:none!important}   /* 로그아웃 버튼과 같아서 숨김 */
+
+/* 수업 통제: 화면 멈춤 체크 박스는 오른쪽, 버튼 허용 3개는 균등 배치 */
+.cls-switch.big{flex-direction:row-reverse;justify-content:space-between}
+.cls-switches{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cls-switches .cls-switch{justify-content:center;padding:8px 10px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+@media (max-width:560px){.cls-switches{grid-template-columns:minmax(0,1fr)}.cls-switches .cls-switch{justify-content:flex-start}}
 </style>
 </head>
 <body>
