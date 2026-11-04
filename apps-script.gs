@@ -70,63 +70,105 @@ function saveRecord_(d) {
   return { ok: true };
 }
 
-/* ---------- 2) 누적 데이터: 학번·이름 기준 한 줄, 가장 높은 값으로 갱신 ---------- */
+/* ---------- 2) 누적 데이터: 학번·이름마다 한 줄, 소활동마다 열 묶음 ----------
+ * 소활동 하나에 열 4개: "주제 › 활동 › 소활동 · 최고 점수(%)" / "· 최근 정답/문항" / "· 최근 입력값" / "· 학습 시간(초)"
+ * 새 소활동이 오면 열을 추가하고, 모든 열을 주제 → 활동 → 소활동 번호 순서로 정리한 뒤 학생 줄을 그 열에 맞춰 다시 쓴다.
+ */
+const METRICS = ['최고 점수(%)', '최근 정답/문항', '최근 입력값', '학습 시간(초)'];
 function updateBest_(ss, sid, d) {
-  const sh = sheet_(ss, SHEET_BEST, BEST_FIXED); ensureHead_(sh, BEST_FIXED);
-  let head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
-
-  // 보낸 학습 데이터 전체(snapshot)를 소활동별 열로 펼친다: 열 이름 = "차시 › 단계 › 소활동"
-  const cols = {};
-  const snap = d.snapshot || {};
+  const sh = sheet_(ss, SHEET_BEST, BEST_FIXED);
+  const table = readTable_(sh);
+  const nm = String(d.name || '').trim();
+  let obj = table.rows.find(function (o) { return o['학번'] === sid && String(o['이름']).trim() === nm; });
+  if (!obj) { obj = { '학번': sid, '이름': nm }; table.rows.push(obj); }
+  mergeStudent_(obj, d.snapshot || {}, null);
+  obj['최근 전송 시각'] = new Date();
+  obj['전송 횟수'] = (Number(obj['전송 횟수']) || 0) + 1;
+  obj['완료한 주제 수'] = Math.max(Number(obj['완료한 주제 수']) || 0, Number(d.completedLessons) || 0);
+  if (d.progress) {
+    let old = null; try { old = JSON.parse(obj['이어하기 데이터(JSON)'] || 'null'); } catch (err) {}
+    obj['이어하기 데이터(JSON)'] = JSON.stringify(mergeProgress_(old, d.progress));
+  }
+  writeTable_(sh, table);
+}
+/** 학생 한 명의 소활동 데이터 합치기 (점수·시간은 큰 값, 정답/문항·입력값은 최근 값) */
+function mergeStudent_(obj, snap, names) {
   Object.keys(snap).forEach(function (k) {
     const r = snap[k] || {};
-    const name = [r.lesson, r.step, r.sub].filter(String).join(' › ') || k;
-    const v = r.best != null ? r.best : (r.score != null ? r.score : 100);   // 입력 문항이 없는 소활동은 완료 = 100
-    cols[name] = Math.max(cols[name] == null ? -1 : cols[name], Number(v) || 0);
+    const base = (names && names[k]) || colBase_(r, k);
+    const sc = r.best != null ? Number(r.best) : (r.score != null ? Number(r.score) : 100);   // 입력 문항이 없는 소활동은 완료 = 100
+    const c1 = base + ' · ' + METRICS[0], c2 = base + ' · ' + METRICS[1], c3 = base + ' · ' + METRICS[2], c4 = base + ' · ' + METRICS[3];
+    obj[c1] = (obj[c1] === '' || obj[c1] == null) ? sc : Math.max(Number(obj[c1]) || 0, sc);
+    obj[c2] = r.total ? (r.correct || 0) + '/' + r.total : (obj[c2] || '완료');
+    const inp = (r.inputs || []).filter(function (x) { return x !== '' && x != null; }).join(' | ');
+    obj[c3] = inp || obj[c3] || '';
+    obj[c4] = Math.max(Number(obj[c4]) || 0, Number(r.time) || 0);
   });
-  // 새 열 추가
-  const add = Object.keys(cols).filter(function (c) { return head.indexOf(c) < 0; }).sort();
-  if (add.length) {
-    sh.getRange(1, head.length + 1, 1, add.length).setValues([add]).setFontWeight('bold').setBackground('#E8EAF6');
-    head = head.concat(add);
-  }
-
-  // 학번·이름이 같은 행 찾기 (없으면 새로)
-  const last = sh.getLastRow(), nm = String(d.name || '').trim();
-  let row = -1;
-  if (last >= 2) {
-    const ids = sh.getRange(2, 1, last - 1, 2).getValues().map(function (r) { return String(r[0]).replace(/^'/, '') + '|' + String(r[1]).trim(); });
-    const i = ids.indexOf(sid + '|' + nm);
-    if (i >= 0) row = i + 2;
-  }
-  let vals = row > 0 ? sh.getRange(row, 1, 1, head.length).getValues()[0] : new Array(head.length).fill('');
-  while (vals.length < head.length) vals.push('');
-
-  const at = (name) => head.indexOf(name);
-  // 점수 열: 기존 값과 비교해 더 큰 값
-  Object.keys(cols).forEach(function (c) {
-    const j = at(c), old = vals[j];
-    vals[j] = (old === '' || old == null) ? cols[c] : Math.max(Number(old) || 0, cols[c]);
+  // 요약 열
+  const scoreCols = Object.keys(obj).filter(function (c) { return c.slice(-METRICS[0].length) === METRICS[0] && obj[c] !== '' && obj[c] != null; });
+  const timeCols = Object.keys(obj).filter(function (c) { return c.slice(-METRICS[3].length) === METRICS[3]; });
+  obj['완료한 소활동 수'] = scoreCols.length;
+  obj['평균 점수(%)'] = scoreCols.length ? Math.round(scoreCols.reduce(function (s, c) { return s + Number(obj[c]); }, 0) / scoreCols.length) : '';
+  obj['누적 학습 시간(초)'] = timeCols.reduce(function (s, c) { return s + (Number(obj[c]) || 0); }, 0);
+}
+function colBase_(r, k) { return [r.lesson, r.step, r.sub].filter(function (x) { return x; }).join(' › ') || k; }
+/** 열 정렬: 주제 번호 → 활동 번호 → 소활동 번호 → 항목 순서 (번호가 없는 열은 뒤로) */
+function colKey_(c) {
+  const mi = METRICS.findIndex(function (m) { return c.slice(-m.length) === m; });
+  const base = mi >= 0 ? c.slice(0, c.length - METRICS[mi].length - 3) : c;
+  const L = base.match(/^(\d+)\./), S = base.match(/ › (\d+)\. /), K = base.match(/ › (\d+)\) /);
+  const pad = function (m) { return ('000' + (m ? m[1] : '999')).slice(-3); };
+  return (L ? '0' : '1') + pad(L) + pad(S) + (K ? pad(K) : '000') + '|' + (L ? '' : base) + '|' + (mi < 0 ? 9 : mi);
+}
+function readTable_(sh) {
+  const lr = sh.getLastRow(), lc = Math.max(sh.getLastColumn(), BEST_FIXED.length);
+  const vals = lr ? sh.getRange(1, 1, lr, lc).getValues() : [BEST_FIXED];
+  const head = vals[0].map(String);
+  const rows = vals.slice(1).filter(function (r) { return String(r[0]).trim(); }).map(function (r) {
+    const o = {}; head.forEach(function (h, i) { if (h) o[h] = r[i]; }); o['학번'] = String(o['학번']).replace(/^'/, ''); return o;
   });
-  // 고정 열
-  const scoreCols = head.slice(BEST_FIXED.length).map(function (_, k) { return vals[BEST_FIXED.length + k]; }).filter(function (v) { return v !== '' && v != null; });
-  const totalTime = Object.keys(snap).reduce(function (s, k) { return s + (Number((snap[k] || {}).time) || 0); }, 0);
-  vals[at('학번')] = "'" + sid;
-  vals[at('이름')] = d.name || vals[at('이름')];
-  vals[at('최근 전송 시각')] = new Date();
-  vals[at('전송 횟수')] = (Number(vals[at('전송 횟수')]) || 0) + 1;
-  vals[at('완료한 주제 수')] = Math.max(Number(vals[at('완료한 주제 수')]) || 0, Number(d.completedLessons) || 0);
-  vals[at('완료한 소활동 수')] = Math.max(Number(vals[at('완료한 소활동 수')]) || 0, Object.keys(snap).length);
-  vals[at('평균 점수(%)')] = scoreCols.length ? Math.round(scoreCols.reduce(function (s, v) { return s + Number(v); }, 0) / scoreCols.length) : '';
-  vals[at('누적 학습 시간(초)')] = Math.max(Number(vals[at('누적 학습 시간(초)')]) || 0, totalTime);
-  // 이어하기: 지금까지의 진행 상태와 이번 진행 상태를 합쳐(완료는 유지, 진도는 더 나간 쪽) 저장
-  if (at('이어하기 데이터(JSON)') >= 0 && d.progress) {
-    let old = null; try { old = JSON.parse(vals[at('이어하기 데이터(JSON)')] || 'null'); } catch (err) {}
-    vals[at('이어하기 데이터(JSON)')] = JSON.stringify(mergeProgress_(old, d.progress));
-  }
+  return { head: head, rows: rows };
+}
+function writeTable_(sh, table) {
+  const cols = {};
+  table.head.forEach(function (h) { if (h && BEST_FIXED.indexOf(h) < 0) cols[h] = 1; });
+  table.rows.forEach(function (o) { Object.keys(o).forEach(function (h) { if (BEST_FIXED.indexOf(h) < 0) cols[h] = 1; }); });
+  const head = BEST_FIXED.concat(Object.keys(cols).sort(function (a, b) { const x = colKey_(a), y = colKey_(b); return x < y ? -1 : x > y ? 1 : 0; }));
+  const out = [head].concat(table.rows.map(function (o) {
+    return head.map(function (h) { const v = o[h]; return h === '학번' ? "'" + v : (v == null ? '' : v); });
+  }));
+  sh.clearContents();
+  sh.getRange(1, 1, out.length, head.length).setValues(out);
+  sh.getRange(1, 1, 1, head.length).setFontWeight('bold').setBackground('#E8EAF6');
+  sh.setFrozenRows(1);
+}
 
-  if (row > 0) sh.getRange(row, 1, 1, head.length).setValues([vals]);
-  else sh.appendRow(vals);
+/** 누적 데이터 다시 만들기: '활동 데이터'에 쌓인 모든 기록으로 학생별 한 줄을 새로 정리
+ *  (예전 이름의 열이 섞였거나 열이 어긋났을 때 Apps Script 편집기에서 이 함수를 선택해 [실행]) */
+function rebuildBest() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const log = ss.getSheetByName(SHEET_LOG); if (!log || log.getLastRow() < 2) return;
+  const vals = log.getRange(1, 1, log.getLastRow(), log.getLastColumn()).getValues();
+  const head = vals[0].map(String);
+  const iT = head.indexOf('전송 시각'), iS = head.indexOf('학번'), iN = head.indexOf('이름'), iC = head.indexOf('완료한 주제 수'), iJ = head.indexOf('전송 시점까지의 학습 데이터 전체(JSON)');
+  const rows = vals.slice(1);
+  // 같은 소활동은 가장 최근에 보낸 이름으로 통일
+  const names = {};
+  rows.forEach(function (r) { let j = null; try { j = JSON.parse(r[iJ] || 'null'); } catch (e) {} const res = (j && j.results) || {};
+    Object.keys(res).forEach(function (k) { names[k] = colBase_(res[k], k); }); });
+  const by = {};
+  rows.forEach(function (r) {
+    const sid = String(r[iS]).replace(/^'/, '').trim(), nm = String(r[iN]).trim(); if (!sid) return;
+    const key = sid + '|' + nm, o = by[key] || (by[key] = { '학번': sid, '이름': nm, '전송 횟수': 0 });
+    let j = null; try { j = JSON.parse(r[iJ] || 'null'); } catch (e) {}
+    mergeStudent_(o, (j && j.results) || {}, names);
+    o['전송 횟수']++; o['최근 전송 시각'] = r[iT];
+    o['완료한 주제 수'] = Math.max(Number(o['완료한 주제 수']) || 0, Number(r[iC]) || 0);
+  });
+  // 이어하기 데이터는 지금 시트의 값을 그대로 둔다
+  const sh = sheet_(ss, SHEET_BEST, BEST_FIXED), cur = readTable_(sh);
+  cur.rows.forEach(function (o) { const k = o['학번'] + '|' + String(o['이름']).trim(); if (by[k]) by[k]['이어하기 데이터(JSON)'] = o['이어하기 데이터(JSON)']; });
+  writeTable_(sh, { head: BEST_FIXED, rows: Object.keys(by).map(function (k) { return by[k]; }) });
 }
 
 /* ---------- 이어하기: 같은 학번·이름의 진행 상태 돌려주기 ---------- */

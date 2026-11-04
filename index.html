@@ -14023,16 +14023,20 @@ function clsFill(key, root, tries=0){
   root._clsFilled = true;
   fs.forEach((f, i) => { const v = r.inputs[i]; if(v && !f.value && !f.readOnly && !f.disabled){ f.value = v; f.dispatchEvent(new Event('input', { bubbles:true })); } });
 }
+/** 소활동 이름: 주제 "8. 구의 부피와 겉넓이" › 활동 "3. 구 부피 탐구" › 소활동 "2) 물 붓기 실험" (번호는 시트 열 순서 정렬용) */
 function clsNames(key){
   for(const L of CLS_CATALOG){
-    for(const s of L.steps){
-      if(s.card === key) return { lesson:L.title, step:s.label, sub:'' };
-      for(const h of s.subs){ const i = +String(key).split(':').pop(); if(key.startsWith(h.host + ':')) return { lesson:L.title, step:s.label, sub:h.items[i] || `소활동 ${i + 1}` }; }
+    for(const [si, s] of L.steps.entries()){
+      const step = `${si + 1}. ${s.label}`;
+      if(s.card === key) return { lesson:L.title, step, sub:'' };
+      for(const h of s.subs){ const i = +String(key).split(':').pop(); if(key.startsWith(h.host + ':')) return { lesson:L.title, step, sub:`${i + 1}) ${h.items[i] || `소활동 ${i + 1}`}` }; }
     }
-    if(key === L.id + ':quiz') return { lesson:L.title, step:'확인 퀴즈', sub:'' };
+    if(key === L.id + ':quiz'){ const qi = L.steps.findIndex(x => /-quiz-card$/.test(x.card)); return { lesson:L.title, step:`${qi >= 0 ? qi + 1 : L.steps.length + 1}. 확인 퀴즈`, sub:'' }; }
   }
   return { lesson:'', step:key, sub:'' };
 }
+/** 보낼 때마다 모든 소활동 이름을 지금 기준으로 다시 붙인 학습 데이터 */
+function clsSnapshot(){ const o = {}; Object.entries(cls.results).forEach(([k, r]) => { o[k] = { ...r, ...clsNames(k), key:k }; }); return o; }
 function clsEnter(key){ cls.enter[key] = Date.now(); }
 /** 소활동을 마치고 다른 소활동·단계로 넘어갈 때: 결과 저장 + 구글 시트로 전송 */
 function clsReport(key, root, extra){
@@ -14046,7 +14050,7 @@ function clsReport(key, root, extra){
     inputs:r.inputs || prev.inputs || [] };
   cls.results[key] = rec; jset(CLS_KEY.results, cls.results);
   clsSend({ action:'record', sid:cls.user.sid, name:cls.user.name, sentAt:rec.at, item:rec,
-    completedLessons:LESSONS.filter((_, i) => isCompleted(i)).length, snapshot:cls.results, quiz:state.scores, progress:clsProgress() });
+    completedLessons:LESSONS.filter((_, i) => isCompleted(i)).length, snapshot:clsSnapshot(), quiz:state.scores, progress:clsProgress() });
 }
 /** 이어서 하기용 진행 상태 (구글 시트에 함께 저장 → 같은 학번·이름으로 다시 들어오면 불러옴) */
 function clsProgress(){
