@@ -2550,7 +2550,7 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 /* 관리자가 잠근 활동 */
 .cls-locked{position:relative}
 .cls-locked > .card-body,.l0-sub.cls-locked > .l0-actbox{filter:blur(3px) grayscale(.6);pointer-events:none;user-select:none}
-.cls-locked::after{content:"🔒 선생님이 잠가 둔 활동이에요";position:absolute;left:50%;top:120px;transform:translateX(-50%);padding:10px 18px;border-radius:14px;background:#263238;color:#fff;font-weight:800;z-index:5;white-space:nowrap}
+.cls-locked::after{content:"🔒 활동 시작 전입니다.\A이전 활동에 먼저 참여하세요.";white-space:pre;text-align:center;line-height:1.6;position:absolute;left:50%;top:120px;transform:translateX(-50%);padding:10px 18px;border-radius:14px;background:#263238;color:#fff;font-weight:800;z-index:5;white-space:pre}
 .step-btn.locked,.l0-simtab.locked{opacity:.55}
 .l0-simtab.locked .tt::after{content:" 🔒"}
 /* 버튼 통제 */
@@ -13545,7 +13545,7 @@ function goStep(id, i, { scroll=true } = {}){
   const n = collectLessonSteps(sec).length, st = lessonStepState(id);
   if(i < 0 || i >= n) return;
   const all = collectLessonSteps(sec);
-  if(!stepOpen(all, st, i)){ toast(clsLock(all[i].card.id) === 'lock' ? '🔒 선생님이 잠가 둔 활동이에요.' : '🔒 앞 활동을 모두 마치면 열려요. (소활동을 하나씩 모두 살펴보자!)'); return; }
+  if(!stepOpen(all, st, i)){ toast(clsLock(all[i].card.id) === 'lock' ? '🔒 활동 시작 전입니다. 이전 활동에 먼저 참여하세요.' : '🔒 앞 활동을 모두 마치면 열려요. (소활동을 하나씩 모두 살펴보자!)'); return; }
   if(i !== st.cur){ stepReport(all[st.cur] && all[st.cur].card); if(!all[i].card.querySelector('.subtab-host')){ clsEnter(all[i].card.id); setTimeout(() => clsFill(all[i].card.id, all[i].card), 60); } }
   st.cur = i; st.reached = Math.max(st.reached, i); saveProgress();
   refreshLessonSteps(id);
@@ -13644,7 +13644,7 @@ function setupSubTabs(body){
   body._report = () => { const j = items.findIndex(x => x.key === cur); if(j >= 0) clsReport(subKey(j), items[j].sec); };
   function show(k, scroll){
     const i = items.findIndex(x => x.key === k); if(i < 0) return;
-    if(cur && cur !== k && !openSub(i)){ toast(clsLock(subKey(i)) === 'lock' ? '🔒 선생님이 잠가 둔 소활동이에요.' : '🔒 앞 소활동을 먼저 살펴보자!'); return; }
+    if(cur && cur !== k && !openSub(i)){ toast(clsLock(subKey(i)) === 'lock' ? '🔒 활동 시작 전입니다. 이전 활동에 먼저 참여하세요.' : '🔒 앞 소활동을 먼저 살펴보자!'); return; }
     if(cur && cur !== k){ done.add(cur); store[id] = [...done]; safeStorage.set(SUBTAB_KEY, JSON.stringify(store)); body._report(); }
     cur = k;
     const sn0 = seenSet(); if(!sn0.has(k)){ sn0.add(k); cls.seen[id] = [...sn0]; jset(CLS_KEY.seen, cls.seen); if(lessonId) setTimeout(() => refreshLessonSteps(lessonId), 0); }
@@ -14108,7 +14108,8 @@ async function clsFetchCfg(){
   try{
     const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'action=config&t=' + Date.now());
     const j = await res.json();
-    if(j && j.config && (j.config.updatedAt || 0) >= (cls.cfg.updatedAt || 0)){
+    // 구글 시트의 설정이 기준: 기기마다 시계가 달라도 바뀐 내용이 있으면 그대로 따른다
+    if(j && j.config && JSON.stringify(clsNormCfg(j.config)) !== JSON.stringify(cls.cfg)){
       const wasPause = !!cls.cfg.pause, nc = clsNormCfg(j.config);
       cls.cfg = nc; jset(CLS_KEY.cfg, cls.cfg);
       // 화면 멈춤이 켜지거나 꺼지면 학생 화면을 새로 고침해서 바로 적용 (보던 소활동 결과는 먼저 보냄)
@@ -14284,6 +14285,7 @@ function clsStart(){
   document.body.classList.toggle('teacher', state.teacher);
   clsApply();
   const L = LESSONS[state.current]; if(L) refreshLessonSteps(L.id);
+  if(!isStudent()) clsFetchCfg();   // 관리자 비밀번호·설정도 시트 기준으로 맞춤
   if(!cls.role){ clsLogin(); return; }
   if(isStudent()){ clsFetchCfg(); clsFlush();
     setTimeout(() => { const L = LESSONS[state.current], sec = L && document.getElementById(L.id); if(!sec) return;
@@ -14294,8 +14296,9 @@ function clsStart(){
 setInterval(() => { if(isStudent()) clsFetchCfg(); }, 10000);   // 10초마다 수업 설정 확인
 
 /* --- 수업 관리 --- */
-function clsOpenAdmin(){
+async function clsOpenAdmin(){
   document.querySelectorAll('.cls-admin').forEach(x => x.remove());
+  await clsFetchCfg();   // 다른 기기에서 저장한 최신 설정으로 화면을 연다
   const c = JSON.parse(JSON.stringify(cls.cfg)); c.locks = c.locks || {};
   const sel = (key, extra='') => `<select data-key="${key}" ${extra}>${Object.entries(CLS_LOCK_TEXT).map(([v, t]) => `<option value="${v}"${(c.locks[key] || 'auto') === v ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
   const tree = CLS_CATALOG.map(L => `<details class="cls-lesson"><summary><span class="cls-lt">${clsEsc(L.title)}</span>${sel(L.id)}<span class="cls-bulk"><button class="btn" type="button" data-bulk="auto" data-l="${L.id}">모두 자동</button><button class="btn" type="button" data-bulk="open" data-l="${L.id}">모두 열림</button><button class="btn" type="button" data-bulk="lock" data-l="${L.id}">모두 잠김</button></span></summary>
@@ -14337,9 +14340,15 @@ function clsOpenAdmin(){
     const url = $('[data-f="url"]', m).value.trim(); safeStorage.set(CLS_KEY.url, url);
     cls.cfg = clsNormCfg(nc); jset(CLS_KEY.cfg, cls.cfg); clsApply();
     if(url){
-      try{ await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify({ action:'config', auth, config:cls.cfg }) });
-        msg.textContent = '✓ 저장했어요. 학생 화면에는 10초 안에 적용돼요. (화면 멈춤을 바꾸면 학생 화면이 자동으로 새로 고침돼요)'; }
-      catch(e){ msg.textContent = '⚠️ 이 기기에는 저장했지만 구글 시트로 보내지 못했어요. 인터넷과 주소를 확인해 주세요.'; }
+      const body = JSON.stringify({ action:'config', auth, config:cls.cfg });
+      const okMsg = '✓ 저장했어요. 학생 화면에는 10초 안에 적용돼요. (화면 멈춤을 바꾸면 학생 화면이 자동으로 새로 고침돼요)';
+      try{
+        let r = null;
+        try{ const res = await fetch(url, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }); r = await res.json(); }
+        catch(e){ await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }); }   // 응답을 못 읽는 환경
+        if(r && r.ok === false){ msg.style.color = ''; msg.textContent = '⚠️ 구글 시트에 저장하지 못했어요: ' + (r.error || '알 수 없는 오류'); }
+        else msg.textContent = okMsg;
+      }catch(e){ msg.textContent = '⚠️ 이 기기에는 저장했지만 구글 시트로 보내지 못했어요. 인터넷과 주소를 확인해 주세요.'; }
     }else msg.textContent = '✓ 이 기기에 저장했어요. (구글 시트 주소가 없으면 다른 기기에는 적용되지 않아요)';
     toast('💾 수업 설정을 저장했어요.');
   });
