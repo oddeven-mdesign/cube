@@ -1126,6 +1126,10 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 
 <!-- ===================== 마무리 화면 · 점검 도구 · 인쇄 스타일 ===================== -->
 <style id="finish-style">
+/* 처음부터·초기화 버튼: '기둥 부피 탐구' [↺ 초기화]와 같은 모양·색 */
+.rs-btn{border-color:#FB8C00!important;border-style:solid!important;color:#E65100!important;background:#fff!important;filter:none!important}
+.rs-btn:hover{background:#FFF3E0!important}
+.rs-btn:disabled{opacity:.5}
 .fin-hero{background:linear-gradient(120deg,#FFE082,#FFF8E1)!important;border-color:#FFCA28!important}
 .fin-card .card-head h3{font-size:1.3rem}
 .fin-meta{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:-4px 0 10px;font-weight:700}
@@ -3195,7 +3199,7 @@ async function create3DViewer(container, options={}){
   opt.tools.forEach(key => {
     const def0 = TOOL_DEFS[key]; if(!def0) return;
     const def = opt.toolLabels && opt.toolLabels[key] ? { ...def0, label:opt.toolLabels[key] } : def0;   // 화면별 버튼 이름 바꾸기
-    const b = el('button', { class:'tool-btn', type:'button' });
+    const b = el('button', { class:'tool-btn', type:'button', 'data-tool':key });
     if(def.toggle){
       b.setAttribute('aria-pressed', String(!!toggles[key]));
       b.innerHTML = `${def.label} <span class="tb-state">${toggles[key] ? '켜짐' : '꺼짐'}</span>`;
@@ -3207,6 +3211,13 @@ async function create3DViewer(container, options={}){
     toolbar.appendChild(b); toolBtns[key] = b;
   });
 
+  toolbar._resetView = () => resetView();
+  /* 관찰 버튼의 처음 상태 기억 (활동을 바꿀 때 되돌리기용): 처음 화면에 보일 때의 켜짐/꺼짐 */
+  if('IntersectionObserver' in window){
+    const tio = new IntersectionObserver(es => { if(!es.some(x => x.isIntersecting)) return; tio.disconnect();
+      setTimeout(() => toolbar.querySelectorAll('.tool-btn[aria-pressed]').forEach(b => { if(b.dataset.init === undefined) b.dataset.init = b.getAttribute('aria-pressed'); }), 0); }, { rootMargin:'20000px' });
+    tio.observe(toolbar);
+  }
   function setToggle(key, val){
     toggles[key] = !!val;
     const b = toolBtns[key];
@@ -3591,6 +3602,8 @@ function createQuiz(container, questions, opts={}){
    ===================================================================== */
 /** 슬라이더: createSlider({ label, min, max, step, value, unit, format, onInput }) → { el, get, set } */
 function createSlider({ label='값', min=0, max=10, step=1, value=min, unit='', format, onInput } = {}){
+  let touched = false;   // 모든 슬라이더는 범위의 최솟값에서 시작 (활동 상태는 화면에 처음 보일 때 최솟값으로 맞춘다)
+  value = min;
   const id = 'sl-' + Math.random().toString(36).slice(2, 8);
   const wrap = el('div', { class:'sim-slider' });
   wrap.innerHTML = `<label for="${id}"><span>${label}</span><output for="${id}"></output></label>
@@ -3602,9 +3615,23 @@ function createSlider({ label='값', min=0, max=10, step=1, value=min, unit='', 
     input.style.setProperty('--p', ((v - min) / (max - min) * 100) + '%');
     input.setAttribute('aria-valuetext', out.textContent);
   };
-  input.addEventListener('input', () => { show(); onInput && onInput(parseFloat(input.value)); });
+  input.addEventListener('input', () => { touched = true; show(); onInput && onInput(parseFloat(input.value)); });
   show();
-  return { el:wrap, get:() => parseFloat(input.value), set:(v) => { input.value = v; show(); onInput && onInput(parseFloat(input.value)); } };
+  const api = { el:wrap, get:() => parseFloat(input.value), set:(v) => { input.value = v; show(); onInput && onInput(parseFloat(input.value)); } };
+  /* 처음값(최솟값)으로: 활동 준비가 덜 끝나 오류가 나면 잠시 뒤 다시 시도 */
+  let first = true;
+  api.toMin = (tries = 0) => {
+    if(!first && parseFloat(input.value) === +min) return;
+    try{ api.set(min); first = false; }catch(e){ if(tries < 20) setTimeout(() => api.toMin(tries + 1), 300); }
+  };
+  wrap._sl = api;
+  /* 처음 화면에 보일 때: 활동이 정한 시작값 대신 최솟값으로 (활동 준비가 늦게 끝나는 경우도 맞춤) */
+  const firstShow = () => [0, 600, 1500].forEach(t => setTimeout(() => { if(!touched) api.toMin(); }, t));
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver(es => { if(es.some(x => x.isIntersecting)){ io.disconnect(); firstShow(); } }, { rootMargin:'20000px' });
+    io.observe(input);
+  }else setTimeout(firstShow, 500);
+  return api;
 }
 
 /**
@@ -3634,13 +3661,15 @@ function createStepper({ steps=[], onStep } = {}){
   nextBtn.addEventListener('click', () => go(idx + 1));
   $('[data-a="reset"]', wrap).addEventListener('click', () => go(0));
   if(steps.length) go(0);
-  return { el:wrap, go, next:() => go(idx + 1), reset:() => go(0), get index(){ return idx; } };
+  const api = { el:wrap, go, next:() => go(idx + 1), reset:() => go(0), get index(){ return idx; } };
+  wrap._stepper = api; wrap.classList.add('ui-stepper');
+  return api;
 }
 
 /** 재생/일시정지: createPlayButton({ playing, onToggle(isPlaying), playLabel, pauseLabel }) → { el, set, get } */
 function createPlayButton({ playing=false, onToggle, playLabel='재생', pauseLabel='일시정지' } = {}){
   let on = playing;
-  const b = el('button', { class:'btn', type:'button' });
+  const b = el('button', { class:'btn ui-play', type:'button', 'data-init':String(!!playing) });
   const show = () => { b.innerHTML = on ? `⏸ ${pauseLabel}` : `▶ ${playLabel}`; b.setAttribute('aria-pressed', String(on)); };
   b.addEventListener('click', () => { on = !on; show(); onToggle && onToggle(on); });
   show();
@@ -13546,11 +13575,11 @@ function goStep(id, i, { scroll=true } = {}){
   if(i < 0 || i >= n) return;
   const all = collectLessonSteps(sec);
   if(!stepOpen(all, st, i)){ toast(clsLock(all[i].card.id) === 'lock' ? '🔒 활동 시작 전입니다. 이전 활동에 먼저 참여하세요.' : '🔒 지금 활동을 모두 마치면 다음 활동이 열려요. (소활동·세부활동, 빈칸과 문제에 모두 참여해 보자!)'); return; }
-  if(i !== st.cur){ stepReport(all[st.cur] && all[st.cur].card); const nc = all[i].card, own = CLS_OWN.find(d => d.card === nc.id);
+  if(i !== st.cur){ stepReport(all[st.cur] && all[st.cur].card); all[st.cur] && uiReset(all[st.cur].card); const nc = all[i].card, own = CLS_OWN.find(d => d.card === nc.id);
     if(own) setTimeout(() => { const o = clsOwn(own); if(o){ clsEnter(`${own.card}:${o.cur}`); clsFill(`${own.card}:${o.cur}`, o.secs[o.cur]); clsOwnSync(o); } }, 300);
     else if(!nc.querySelector('.subtab-host')){ clsEnter(nc.id); setTimeout(() => clsFill(nc.id, nc), 60); } }
   st.cur = i; st.reached = Math.max(st.reached, i); saveProgress();
-  refreshLessonSteps(id);
+  refreshLessonSteps(id); uiMin(all[i].card, 120);
   if(scroll){ const bar = $('.step-bar', sec); bar && bar.scrollIntoView({ behavior:'smooth', block:'start' }); }
   const card = collectLessonSteps(sec)[i].card; card.setAttribute('tabindex', '-1'); card.focus({ preventScroll:true });
 }
@@ -13649,14 +13678,15 @@ function setupSubTabs(body){
     if(cur && cur !== k && !openSub(i)){
       const lk = clsLock(subKey(i)), pend = items.slice(0, i).find(x => !clsDetailDone(x.sec)), left = pend ? clsDetailLeft(pend.sec) : [];
       toast(clsBlockMsg(lk === 'lock', left), 3200); return; }
-    if(cur && cur !== k){ done.add(cur); store[id] = [...done]; safeStorage.set(SUBTAB_KEY, JSON.stringify(store)); body._report(); }
+    if(cur && cur !== k){ done.add(cur); store[id] = [...done]; safeStorage.set(SUBTAB_KEY, JSON.stringify(store)); body._report();
+      const pv = items.find(x => x.key === cur); pv && uiReset(pv.sec); }
     cur = k;
     const sn0 = seenSet(); if(!sn0.has(k)){ sn0.add(k); cls.seen[id] = [...sn0]; jset(CLS_KEY.seen, cls.seen); if(lessonId) setTimeout(() => refreshLessonSteps(lessonId), 0); }
     clsEnter(subKey(i));
     setTimeout(() => { clsFill(subKey(i), items[i].sec); clsDetailMark(items[i].sec); }, 60);
     setTimeout(() => { if(clsDetailMark(items[i].sec)) paint(); }, 1500);   // 늦게 만들어지는 소활동
     paint();
-    items.forEach(x => { x.sec.hidden = x.key !== k; });
+    items.forEach(x => { x.sec.hidden = x.key !== k; }); uiMin(items[i].sec, 120);
     const sn = $('.l0-simnav', items[i].sec);
     const one = t => t.replace(/<br\s*\/?>/g, ': ');   // 이동 버튼에는 한 줄로 ("시뮬레이션: 기둥 전개도")
     sn.innerHTML = (i > 0 ? `<button class="btn" type="button" data-go="${items[i - 1].key}">◀ ${items[i - 1].icon} ${one(items[i - 1].title)}</button>` : '')
@@ -13896,6 +13926,39 @@ function updateNav(){
   if(state.view !== 'finish' && LESSONS[c]) refreshLessonSteps(LESSONS[c].id);
 }
 
+/* =====================================================================
+   활동(소활동·세부활동 포함)을 바꿀 때: 떠나는 활동의 버튼·슬라이더를 처음값으로
+   (입력한 값과 고른 선택지는 그대로 둔다)
+   ===================================================================== */
+function uiReset(root){
+  if(!root || !root.querySelectorAll) return;
+  const safe = f => { try{ f(); }catch(e){ console.warn(e); } };
+  root.querySelectorAll('.sim-slider').forEach(w => w._sl && safe(() => w._sl.toMin()));                          // 슬라이더 → 최솟값
+  root.querySelectorAll('.viewer-toolbar .tool-btn[aria-pressed][data-init]').forEach(b => {                       // 관찰 버튼 → 처음 켜짐/꺼짐
+    if(b.getAttribute('aria-pressed') !== b.dataset.init && !b.disabled) safe(() => b.click()); });
+  root.querySelectorAll('.viewer-toolbar').forEach(tb => tb._resetView && safe(tb._resetView));                    // 3D 화면 → 처음 위치
+  root.querySelectorAll('.ui-play[aria-pressed]').forEach(b => { if(b.getAttribute('aria-pressed') !== b.dataset.init && !b.disabled) safe(() => b.click()); });   // 재생 버튼
+  root.querySelectorAll('.ui-stepper').forEach(w => w._stepper && w._stepper.index !== 0 && safe(() => w._stepper.reset()));   // 단계 버튼 → 1단계
+}
+/* 새로 들어간 활동·세부활동, 처음부터·초기화 버튼을 누른 뒤: 슬라이더를 최솟값으로 (활동이 정한 시작값 대신) */
+function uiMin(root, delay = 60){
+  if(!root) return;
+  setTimeout(() => root.querySelectorAll('.sim-slider').forEach(w => { if(w._sl && w.getClientRects().length) try{ w._sl.toMin(); }catch(e){} }), delay);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('button.rs-btn'); if(!b || b.closest('.quiz')) return;
+  uiMin(b.closest('section.l0-sub, section.l5-act, .l0-gallery, .l0-net, article.card'));
+});
+/* 처음부터·초기화 같은 버튼: '기둥 부피 탐구'의 [↺ 초기화] 버튼과 같은 모양·색 */
+const RESET_BTN_RE = /^\s*(↺|⏮)|초기화|리셋/;
+function markResetBtns(root){
+  (root || document).querySelectorAll('button').forEach(b => {
+    const on = RESET_BTN_RE.test(b.textContent) && !b.classList.contains('fin-reset') && !b.closest('.quiz, .fin-wrap, .cls-modal-wrap, .cls-admin, .step-nav, .step-bar');
+    if(on !== b.classList.contains('rs-btn')) b.classList.toggle('rs-btn', on);
+  });
+}
+{ let raf = 0; new MutationObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => markResetBtns()); }).observe(document.body, { childList:true, subtree:true, characterData:true }); markResetBtns(); }
+
 function goTo(i, { fromHash=false } = {}){
   if(i < 0 || i >= LESSONS.length) return;
   if(!isUnlocked(i)){
@@ -13903,6 +13966,9 @@ function goTo(i, { fromHash=false } = {}){
     if(fromHash) setHash('#' + LESSONS[state.current].id);
     return;
   }
+  if(state.view === 'lesson' && state.current !== i){   // 다른 주제로: 지금 활동의 버튼·슬라이더를 처음값으로
+    const L0 = LESSONS[state.current], s0 = L0 && document.getElementById(L0.id);
+    if(s0){ const c0 = collectLessonSteps(s0)[lessonStepState(L0.id).cur]; c0 && uiReset(c0.card); } }
   state.current = i; state.view = 'lesson'; $('.pager').hidden = false;
   document.querySelectorAll('.lesson').forEach((s, k) => s.classList.toggle('active', k === i));
   document.documentElement.style.setProperty('--accent', LESSONS[i].color);
@@ -14148,6 +14214,7 @@ function clsBlockMsg(lock, left){
   return lock ? '🔒 활동 시작 전입니다. 이전 활동에 먼저 참여하세요.'
     : left.length ? `🔒 세부활동을 모두 해 보면 다음 소활동이 열려요. (남은 것: ${left.join(', ')})` : '🔒 앞 소활동을 먼저 살펴보자!';
 }
+let uiResetting = false;
 document.addEventListener('click', e => {
   const t = e.target.closest && e.target.closest('button'); if(!t) return;
   // ① 자체 소활동 버튼: 학생은 앞 소활동(세부활동 포함)을 마쳐야 이동
@@ -14161,13 +14228,14 @@ document.addEventListener('click', e => {
       toast(clsBlockMsg(clsLock(`${d.card}:${j}`) === 'lock', pend ? clsDetailLeft(pend) : []), 3200); return;
     }
     const prev = o.cur;
-    if(prev >= 0) clsReport(`${d.card}:${prev}`, o.secs[prev]);
-    setTimeout(() => { const n = clsOwn(d); clsEnter(`${d.card}:${n.cur}`); clsFill(`${d.card}:${n.cur}`, n.secs[n.cur]); clsOwnSync(n);
+    if(prev >= 0){ clsReport(`${d.card}:${prev}`, o.secs[prev]); uiReset(o.secs[prev]); }
+    setTimeout(() => { const n = clsOwn(d); uiMin(n.secs[n.cur], 120); clsEnter(`${d.card}:${n.cur}`); clsFill(`${d.card}:${n.cur}`, n.secs[n.cur]); clsOwnSync(n);
       const L = n.card.closest('.lesson'); if(L) refreshLessonSteps(L.id); }, 0);
     return;
   }
-  // ② 세부활동 버튼: 고르면 기록
+  // ② 세부활동 버튼: 고르면 기록 (다른 세부활동으로 바꾸면, 그 전에 버튼·슬라이더를 처음값으로)
   const sec = t.closest('section.l0-sub, section.l5-act'); if(!sec) return;
+  { const g = clsDetailGroup(sec); if(g && clsDetailBtns(g).includes(t) && !clsOn(t) && !t.disabled && !uiResetting){ uiResetting = true; try{ uiReset(sec); } finally { uiResetting = false; } uiMin(sec, 120); } }
   setTimeout(() => { if(clsDetailMark(sec)){ const h = sec.closest('.subtab-host'); h && h._subRefresh && h._subRefresh();
     const own = CLS_OWN.find(d => sec.closest('#' + d.card)); if(own) clsOwnSync(clsOwn(own));
     const L = sec.closest('.lesson'); if(L) refreshLessonSteps(L.id); } }, 0);
