@@ -215,9 +215,17 @@ function saveConfig_(d) {
   if (String(d.auth || '') !== known) return { ok: false, error: '관리자 비밀번호가 맞지 않아요.' };
   const sh = sheet_(SpreadsheetApp.getActiveSpreadsheet(), SHEET_CFG, ['설정(JSON)', '저장 시각']);
   sh.getRange(2, 1, 1, 2).setValues([[JSON.stringify(d.config || {}), new Date()]]);
+  try { CacheService.getScriptCache().put('cfg', JSON.stringify(d.config || {}), 30); } catch (err) {}
   return { ok: true };
 }
+/* 학생 화면이 10초마다 읽어 가므로, 시트를 매번 읽지 않게 30초 동안 캐시에 둔다 (저장하면 바로 바뀜) */
 function readConfig_() {
+  try { const c = CacheService.getScriptCache().get('cfg'); if (c) return JSON.parse(c); } catch (err) {}
+  const v = readConfigSheet_();
+  try { if (v) CacheService.getScriptCache().put('cfg', JSON.stringify(v), 30); } catch (err) {}
+  return v;
+}
+function readConfigSheet_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CFG);
   if (!sh || sh.getLastRow() < 2) return null;
   try { return JSON.parse(sh.getRange(2, 1).getValue()); } catch (err) { return null; }
@@ -264,4 +272,5 @@ function resetAdminPassword() {
   cfg.pwHash = hashPw_('1234'); cfg.updatedAt = Date.now();
   const sh = sheet_(SpreadsheetApp.getActiveSpreadsheet(), SHEET_CFG, ['설정(JSON)', '저장 시각']);
   sh.getRange(2, 1, 1, 2).setValues([[JSON.stringify(cfg), new Date()]]);
+  try { CacheService.getScriptCache().remove('cfg'); } catch (err) {}
 }
