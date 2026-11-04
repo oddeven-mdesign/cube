@@ -188,7 +188,7 @@ function restore_(sid, name) {
 }
 function mergeProgress_(a, b) {
   if (!a) return b; if (!b) return a;
-  const out = { completed: {}, scores: {}, steps: {}, seen: {}, subtabs: {}, results: {} };
+  const out = { completed: {}, scores: {}, steps: {}, seen: {}, subtabs: {}, results: {}, detail: {} };
   [a.completed, b.completed].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { if (o[k]) out.completed[k] = true; }); });
   [a.scores, b.scores].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
     const v = o[k] || {}, c = out.scores[k];
@@ -198,7 +198,7 @@ function mergeProgress_(a, b) {
     const v = o[k] || {}, c = out.steps[k];
     out.steps[k] = !c ? { cur: v.cur || 0, reached: v.reached || 0 } : { cur: v.cur || 0, reached: Math.max(c.reached || 0, v.reached || 0) };
   }); });
-  ['seen', 'subtabs'].forEach(function (f) { [a[f], b[f]].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
+  ['seen', 'subtabs', 'detail'].forEach(function (f) { [a[f], b[f]].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
     const s = {}; (out[f][k] || []).concat(o[k] || []).forEach(function (x) { s[x] = 1; }); out[f][k] = Object.keys(s);
   }); }); });
   [a.results, b.results].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
