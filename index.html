@@ -3601,9 +3601,10 @@ function createQuiz(container, questions, opts={}){
    공통 부품 3: 시뮬레이션 조작 UI (모두 최소 44px)
    ===================================================================== */
 /** 슬라이더: createSlider({ label, min, max, step, value, unit, format, onInput }) → { el, get, set } */
-function createSlider({ label='값', min=0, max=10, step=1, value=min, unit='', format, onInput } = {}){
-  let touched = false;   // 모든 슬라이더는 범위의 최솟값에서 시작 (활동 상태는 화면에 처음 보일 때 최솟값으로 맞춘다)
-  value = min;
+function createSlider({ label='값', min=0, max=10, step=1, value=min, unit='', format, onInput, start='min' } = {}){
+  let touched = false;   // 슬라이더는 범위의 최솟값에서 시작 (start:'mid'이면 가운데 값). 활동 상태는 화면에 처음 보일 때 맞춘다
+  const home = start === 'mid' ? Math.round(((min + max) / 2 - min) / step) * step + min : min;
+  value = home;
   const id = 'sl-' + Math.random().toString(36).slice(2, 8);
   const wrap = el('div', { class:'sim-slider' });
   wrap.innerHTML = `<label for="${id}"><span>${label}</span><output for="${id}"></output></label>
@@ -3621,8 +3622,8 @@ function createSlider({ label='값', min=0, max=10, step=1, value=min, unit='', 
   /* 처음값(최솟값)으로: 활동 준비가 덜 끝나 오류가 나면 잠시 뒤 다시 시도 */
   let first = true;
   api.toMin = (tries = 0) => {
-    if(!first && parseFloat(input.value) === +min) return;
-    try{ api.set(min); first = false; }catch(e){ if(tries < 20) setTimeout(() => api.toMin(tries + 1), 300); }
+    if(!first && parseFloat(input.value) === +home) return;
+    try{ api.set(home); first = false; }catch(e){ if(tries < 20) setTimeout(() => api.toMin(tries + 1), 300); }
   };
   wrap._sl = api;
   /* 처음 화면에 보일 때: 활동이 정한 시작값 대신 최솟값으로 (활동 준비가 늦게 끝나는 경우도 맞춤) */
@@ -5760,9 +5761,9 @@ async function l1SetupSection(){
   const capFor = (tx, tz, h) => { const n = normalFor(tx, tz); const [lo, hi] = range(n); const d = lo + (hi - lo) * h / 100; return { n, d, cap:l1Clip(T, faces, n, d).cap }; };
 
   const sl = {
-    tx:createSlider({ label:'앞뒤로 기울이기', min:-90, max:90, step:1, value:0, unit:'°', onInput:v => { st.tx = v; update(); } }),
-    tz:createSlider({ label:'좌우로 기울이기', min:-90, max:90, step:1, value:0, unit:'°', onInput:v => { st.tz = v; update(); } }),
-    off:createSlider({ label:'평면의 위치 (밑면에서)', min:0, max:100, step:1, value:50, format:v => v === 0 ? '밑면' : v === 100 ? (solid.key === 'qp' ? '꼭짓점' : '위 밑면') : `높이의 ${v}%`, onInput:v => { st.off = v; update(); } }),
+    tx:createSlider({ label:'앞뒤로 기울이기', min:-90, max:90, step:1, value:0, start:'mid', unit:'°', onInput:v => { st.tx = v; update(); } }),
+    tz:createSlider({ label:'좌우로 기울이기', min:-90, max:90, step:1, value:0, start:'mid', unit:'°', onInput:v => { st.tz = v; update(); } }),
+    off:createSlider({ label:'평면의 위치 (밑면에서)', min:0, max:100, step:1, value:50, start:'mid', format:v => v === 0 ? '밑면' : v === 100 ? (solid.key === 'qp' ? '꼭짓점' : '위 밑면') : `높이의 ${v}%`, onInput:v => { st.off = v; update(); } }),
   };
   $('.l1-sec-sliders', box).append(sl.tx.el, sl.tz.el, sl.off.el);
   const setSliders = (tx, tz, off) => { sl.tx.set(tx); sl.tz.set(tz); sl.off.set(off); st.tx = tx; st.tz = tz; st.off = off; update(); };
@@ -5909,7 +5910,7 @@ async function l1SetupFrustum(wrap){
   const st = { n:5, t:50, tilt:false, cut:false, sep:0, target:0, pendingUncut:false, res:null, triFace:null };
   const sl = {
     n:createSlider({ label:'밑면의 변의 수', min:3, max:8, step:1, value:5, format:v => `${v} (${L0_POLY[v]}뿔)`, onInput:v => { st.n = v; rebuild(); } }),
-    t:createSlider({ label:'절단면의 위치', min:25, max:75, step:1, value:50, format:v => `밑면에서 높이의 ${v}%`, onInput:v => { st.t = v; rebuild(); } }),
+    t:createSlider({ label:'절단면의 위치', min:25, max:75, step:1, value:50, start:'mid', format:v => `밑면에서 높이의 ${v}%`, onInput:v => { st.t = v; rebuild(); } }),
   };
   $('.l1-fr-sliders', wrap).append(sl.n.el, sl.t.el);
 
