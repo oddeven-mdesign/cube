@@ -127,6 +127,13 @@ body.teacher .teacher-badge{display:inline-block}
 .sidebar-foot .btn{width:100%}
 
 .backdrop{display:none}
+/* 넓은 화면: [☰] 버튼으로 왼쪽 주제 목록 열고 닫기 */
+@media (min-width:901px){
+  .menu-toggle{display:inline-grid;place-items:center;cursor:pointer}
+  .menu-toggle:hover{background:#F3F6FB}
+  .sidebar{transition:margin-left .25s ease,visibility .25s}
+  body.nav-collapsed .sidebar{margin-left:calc(-1 * var(--sidebar-w));visibility:hidden}
+}
 
 .main{flex:1;min-width:0;padding:24px clamp(14px,3vw,40px) 40px}
 .lesson{display:none;max-width:980px;margin:0 auto}
@@ -13999,9 +14006,27 @@ function completeLesson(lessonId){
 }
 
 /* ---------- 모바일 메뉴 ---------- */
-function openMenu(){ document.body.classList.add('nav-open'); $('#menuToggle').setAttribute('aria-expanded', 'true'); $('#menuToggle').textContent = '✕'; }
-function closeMenu(){ document.body.classList.remove('nav-open'); $('#menuToggle').setAttribute('aria-expanded', 'false'); $('#menuToggle').textContent = '☰'; }
-$('#menuToggle').addEventListener('click', () => document.body.classList.contains('nav-open') ? closeMenu() : openMenu());
+/* 주제 목록 열고 닫기: 좁은 화면은 펼침 메뉴, 넓은 화면은 왼쪽 단 접기 (상태 기억) */
+const NAV_KEY = 'ipche-nav-collapsed';
+const navDesk = window.matchMedia('(min-width:901px)');
+function syncMenuBtn(){
+  const b = $('#menuToggle'), desk = navDesk.matches;
+  const open = desk ? !document.body.classList.contains('nav-collapsed') : document.body.classList.contains('nav-open');
+  b.setAttribute('aria-expanded', String(open)); b.textContent = !desk && open ? '✕' : '☰';
+  const t = open ? '주제 목록 닫기' : '주제 목록 열기'; b.setAttribute('aria-label', t); b.title = t;
+}
+function openMenu(){ document.body.classList.add('nav-open'); syncMenuBtn(); }
+function closeMenu(){ document.body.classList.remove('nav-open'); syncMenuBtn(); }
+function toggleDeskNav(){
+  const on = document.body.classList.toggle('nav-collapsed');
+  try{ localStorage.setItem(NAV_KEY, on ? '1' : '0'); }catch(e){}
+  syncMenuBtn();
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 280);   // 넓어진 화면에 3D·그림 크기 맞추기
+}
+try{ if(localStorage.getItem(NAV_KEY) === '1') document.body.classList.add('nav-collapsed'); }catch(e){}
+navDesk.addEventListener ? navDesk.addEventListener('change', syncMenuBtn) : navDesk.addListener(syncMenuBtn);
+syncMenuBtn();
+$('#menuToggle').addEventListener('click', () => navDesk.matches ? toggleDeskNav() : (document.body.classList.contains('nav-open') ? closeMenu() : openMenu()));
 $('#backdrop').addEventListener('click', closeMenu);
 document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeMenu(); closeTeacher(); } });
 
