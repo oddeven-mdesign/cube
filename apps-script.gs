@@ -6,7 +6,9 @@
  *                    → 같은 학생의 데이터가 여러 줄 있을 수 있음
  *   2) 누적 데이터 : 학번·이름마다 한 줄. 이번에 보낸 데이터와 지금까지의 기록을 비교해 가장 높은 값으로 갱신
  *                    → 학생마다 한 줄만 있음 (이미 만들어 둔 빈 탭을 그대로 사용, 첫 줄 제목은 자동으로 채움)
- *   3) 수업설정    : 관리자가 [수업 관리]에서 저장한 잠금·통제 설정 (학생 화면이 20초마다 읽어 감)
+ *   3) 수업설정    : 관리자가 [수업 관리]에서 저장한 잠금·통제 설정 (학생 화면이 10초마다 읽어 감)
+ *   ※ 모니터링     : 학생 화면이 '지금 하는 소활동·마친 소활동'을 알려 오면 캐시에 잠시(6시간) 보관 → 관리자 [📊 모니터링]이 읽어 감
+ *                    (시트에 쓰지 않으므로 빠르고, 기록 저장과 서로 기다리지 않음)
  *
  * 설치
  *   1) 구글 시트를 새로 만들고 [확장 프로그램] → [Apps Script]를 연다.
@@ -32,6 +34,10 @@ const BEST_FIXED = ['학번', '이름', '최근 전송 시각', '전송 횟수',
 
 /* ---------- 받기 ---------- */
 function doPost(e) {
+  // 모니터링 신호는 자주 오므로 잠금 없이 캐시에만 둔다
+  let early = null; try { early = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) {}
+  if (early && early.action === 'status') { try { return json_(saveStatus_(early)); } catch (err) { return json_({ ok: false, error: String(err) }); } }
+  if (early && early.action === 'monitorClear') { try { return json_(clearMonitor_(early)); } catch (err) { return json_({ ok: false, error: String(err) }); } }
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -51,6 +57,7 @@ function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
   if (action === 'config') return json_({ ok: true, config: readConfig_() });
   if (action === 'restore') return json_(restore_(e.parameter.sid, e.parameter.name));
+  if (action === 'monitor') return json_(readMonitor_(e.parameter.auth));
   return json_({ ok: true, message: '입체도형 학습 기록 수집 중' });
 }
 
@@ -229,6 +236,40 @@ function readConfigSheet_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CFG);
   if (!sh || sh.getLastRow() < 2) return null;
   try { return JSON.parse(sh.getRange(2, 1).getValue()); } catch (err) { return null; }
+}
+
+/* ---------- 모니터링 ---------- */
+const MON_TTL = 21600;   // 6시간 (캐시에 둘 수 있는 가장 긴 시간)
+function monKey_(sid, name) { return 'mon:' + String(sid).trim() + '|' + String(name).trim(); }
+function monIndex_(cache) { try { return JSON.parse(cache.get('mon:index') || '[]'); } catch (err) { return []; } }
+function saveStatus_(d) {
+  if (!d.sid || !d.name) return { ok: false, error: 'no id' };
+  const cache = CacheService.getScriptCache(), key = monKey_(d.sid, d.name);
+  const rec = { sid: String(d.sid).trim(), name: String(d.name).trim(), cur: String(d.cur || ''), done: (d.done || []).slice(0, 400), ts: Date.now() };
+  cache.put(key, JSON.stringify(rec), MON_TTL);
+  let idx = monIndex_(cache);
+  if (idx.indexOf(key) < 0) {   // 처음 알려 온 학생만 목록에 더함 (동시에 들어와도 빠지지 않게 잠깐 잠금)
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(5000)) { try { idx = monIndex_(cache); if (idx.indexOf(key) < 0) { idx.push(key); cache.put('mon:index', JSON.stringify(idx), MON_TTL); } } finally { lock.releaseLock(); } }
+  } else cache.put('mon:index', JSON.stringify(idx), MON_TTL);   // 목록 보관 시간 연장
+  return { ok: true };
+}
+function monAuth_(auth) { const cur = readConfig_(); return String(auth || '') === ((cur && cur.pwHash) || DEFAULT_PW_HASH); }
+function readMonitor_(auth) {
+  if (!monAuth_(auth)) return { ok: false, error: '관리자 비밀번호가 맞지 않아요. 다시 로그인해 주세요.' };
+  const cache = CacheService.getScriptCache(), idx = monIndex_(cache), out = [];
+  for (let i = 0; i < idx.length; i += 100) {
+    const got = cache.getAll(idx.slice(i, i + 100));
+    Object.keys(got).forEach(function (k) { try { out.push(JSON.parse(got[k])); } catch (err) {} });
+  }
+  return { ok: true, now: Date.now(), students: out };
+}
+function clearMonitor_(d) {
+  if (!monAuth_(d.auth)) return { ok: false, error: '관리자 비밀번호가 맞지 않아요.' };
+  const cache = CacheService.getScriptCache(), idx = monIndex_(cache);
+  for (let i = 0; i < idx.length; i += 100) cache.removeAll(idx.slice(i, i + 100));
+  cache.remove('mon:index');
+  return { ok: true };
 }
 
 /* ---------- 도우미 ---------- */
