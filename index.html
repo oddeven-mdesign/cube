@@ -2524,6 +2524,44 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 .cls-go{width:100%}
 .cls-row.cls-left{justify-content:flex-start}
 .cls-alt{background:#00897B!important;border-color:#00897B!important}
+.cls-row.cls-three{grid-template-columns:1fr 1fr 1fr}
+.cls-mon-btn{background:#5E35B1!important;border-color:#5E35B1!important}
+/* 모니터링 */
+.cls-admin.cls-monitor .cls-modal{width:min(1320px,100%)}
+.mon-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.mon-sel{display:flex;align-items:center;gap:6px;font-weight:700}
+.mon-sel select{min-height:38px;font-size:.95rem}
+.mon-legend{display:flex;align-items:center;gap:4px;font-size:.85rem;color:var(--ink-soft);flex-wrap:wrap}
+.mon-legend .mon-s{display:inline-grid;place-items:center;min-width:24px;height:22px;border-radius:6px;margin-left:6px;font-size:.8rem}
+.mon-sep{margin:0 4px;color:var(--line)}
+.mon-upd{margin-left:auto;font-size:.82rem;color:var(--ink-soft)}
+.mon-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 6px;vertical-align:middle;background:#BDBDBD}
+.mon-dot.on{background:#43A047;box-shadow:0 0 0 3px #C8E6C9}.mon-dot.mid{background:#FFB300}.mon-dot.off{background:#BDBDBD}
+.mon-sum{margin:0 0 6px;font-size:.92rem}
+.mon-err{color:#C62828;font-weight:700}
+.mon-empty{padding:18px;text-align:center}
+.mon-scroll{overflow:auto;max-height:calc(100vh - 290px);border:1.5px solid var(--line);border-radius:12px}
+.mon-table{border-collapse:separate;border-spacing:0;font-size:.86rem;min-width:100%}
+.mon-table th,.mon-table td{border-bottom:1px solid #EEF1F6;border-right:1px solid #EEF1F6;padding:5px 6px;text-align:center;white-space:nowrap;background:#fff}
+.mon-table thead th{position:sticky;top:0;z-index:2;background:#F5F7FB;font-weight:700}
+.mon-table thead tr:nth-child(2) th{top:31px}
+.mon-table th.mon-step{background:#EDE7F6;color:#4527A0}
+.mon-table th.mon-sub{font-weight:700;max-width:92px}
+.mon-table th.mon-sub small{display:block;font-weight:500;font-size:.72rem;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;max-width:92px}
+.mon-table td.mon-sid,.mon-table td.mon-name,.mon-table td.mon-now{text-align:left}
+.mon-table tbody td:first-child,.mon-table thead tr:first-child th:first-child{position:sticky;left:0;z-index:1}
+.mon-table thead tr:first-child th:first-child{z-index:3}
+.mon-table td.mon-name{font-weight:700}
+.mon-table td.mon-now{max-width:280px;overflow:hidden;text-overflow:ellipsis;font-size:.8rem}
+.mon-table td.mon-now small{display:block;color:var(--ink-soft);font-size:.72rem}
+.mon-c{font-size:.95rem;min-width:34px}
+.mon-c.done,.mon-s.done{background:#E8F5E9!important;color:#2E7D32}
+.mon-c.cur,.mon-s.cur{background:#E3F2FD!important;color:#1565C0;font-weight:800;box-shadow:inset 0 0 0 2px #42A5F5}
+.mon-c.todo,.mon-s.todo{color:#B0BEC5}
+.mon-c.part{background:#FFFDE7!important;color:#8D6E00}
+.mon-pct{font-weight:800}
+.mon-table tfoot th,.mon-table tfoot td{background:#FAFAFA;font-size:.8rem;position:sticky;bottom:0}
+.mon-cnt b{color:#1565C0}.mon-cnt span{color:#2E7D32}
 .cls-danger{background:#E53935!important;border-color:#E53935!important}
 .cls-msg{margin:0;min-height:1.2em;color:#C62828;font-weight:700}
 .cls-msg:empty{min-height:0}
@@ -13463,7 +13501,7 @@ function showFinish({ fromHash=false } = {}){
   sec.innerHTML = finishHTML(); renderMath(sec);
   document.querySelectorAll('.lesson').forEach(s => s.classList.toggle('active', s === sec));
   document.documentElement.style.setProperty('--accent', '#FFB300');
-  state.view = 'finish';
+  state.view = 'finish'; clsStatusSoon();
   syncViewersToLesson(); updateNav();
   $('.pager').hidden = true;
   setHash('#finish');
@@ -13587,7 +13625,7 @@ function goStep(id, i, { scroll=true } = {}){
     if(own) setTimeout(() => { const o = clsOwn(own); if(o){ clsEnter(`${own.card}:${o.cur}`); clsFill(`${own.card}:${o.cur}`, o.secs[o.cur]); clsOwnSync(o); } }, 300);
     else if(!nc.querySelector('.subtab-host')){ clsEnter(nc.id); setTimeout(() => clsFill(nc.id, nc), 60); } }
   st.cur = i; st.reached = Math.max(st.reached, i); saveProgress();
-  refreshLessonSteps(id); uiMin(all[i].card, 120);
+  refreshLessonSteps(id); uiMin(all[i].card, 120); clsStatusSoon();
   if(scroll){ const bar = $('.step-bar', sec); bar && bar.scrollIntoView({ behavior:'smooth', block:'start' }); }
   const card = collectLessonSteps(sec)[i].card; card.setAttribute('tabindex', '-1'); card.focus({ preventScroll:true });
 }
@@ -13977,7 +14015,7 @@ function goTo(i, { fromHash=false } = {}){
   if(state.view === 'lesson' && state.current !== i){   // 다른 주제로: 지금 활동의 버튼·슬라이더를 처음값으로
     const L0 = LESSONS[state.current], s0 = L0 && document.getElementById(L0.id);
     if(s0){ const c0 = collectLessonSteps(s0)[lessonStepState(L0.id).cur]; c0 && uiReset(c0.card); } }
-  state.current = i; state.view = 'lesson'; $('.pager').hidden = false;
+  state.current = i; state.view = 'lesson'; $('.pager').hidden = false; clsStatusSoon();
   document.querySelectorAll('.lesson').forEach((s, k) => s.classList.toggle('active', k === i));
   document.documentElement.style.setProperty('--accent', LESSONS[i].color);
   buildLessonContent(i);
@@ -14302,7 +14340,7 @@ function clsNames(key){
 }
 /** 보낼 때마다 모든 소활동 이름을 지금 기준으로 다시 붙인 학습 데이터 */
 function clsSnapshot(){ const o = {}; Object.entries(cls.results).forEach(([k, r]) => { o[k] = { ...r, ...clsNames(k), key:k }; }); return o; }
-function clsEnter(key){ cls.enter[key] = Date.now(); }
+function clsEnter(key){ cls.enter[key] = Date.now(); clsStatusSoon(); }
 /** 소활동을 마치고 다른 소활동·단계로 넘어갈 때: 결과 저장 + 구글 시트로 전송 */
 function clsReport(key, root, extra){
   if(!isStudent() || !key) return;
@@ -14316,6 +14354,7 @@ function clsReport(key, root, extra){
   cls.results[key] = rec; jset(CLS_KEY.results, cls.results);
   clsSend({ action:'record', sid:cls.user.sid, name:cls.user.name, sentAt:rec.at, item:rec,
     completedLessons:LESSONS.filter((_, i) => isCompleted(i)).length, snapshot:clsSnapshot(), quiz:state.scores, progress:clsProgress() });
+  clsStatusSoon();
 }
 /** 이어서 하기용 진행 상태 (구글 시트에 함께 저장 → 같은 학번·이름으로 다시 들어오면 불러옴) */
 function clsProgress(){
@@ -14356,6 +14395,47 @@ async function clsFlush(){
 }
 setInterval(clsFlush, 30000);
 window.addEventListener('online', clsFlush);
+
+/* =====================================================================
+   모니터링: 학생 화면이 '지금 하는 소활동'과 '마친 소활동'을 알려 줌
+   (수업 관리의 소활동 기준 — 소활동이 없는 활동은 활동 하나가 한 칸)
+   ===================================================================== */
+/** 수업 관리 목록과 같은 순서의 칸 목록: { lesson, step, key, label, short, quiz } */
+const CLS_UNITS = (() => { const out = [];
+  CLS_CATALOG.forEach((L, li) => L.steps.forEach((s, si) => {
+    const quiz = /-quiz-card$/.test(s.card);
+    if(s.subs.length) s.subs.forEach(h => h.items.forEach((t, k) => out.push({ li, lesson:L.id, si, step:s.label, key:`${h.host}:${k}`, label:t, short:`${k + 1})`, quiz:false })));
+    else out.push({ li, lesson:L.id, si, step:s.label, key:s.card, label:s.label, short:'', quiz });
+  })); return out; })();
+/** 지금 학생이 보고 있는 칸 */
+function clsCurKey(){
+  if(state.view !== 'lesson') return state.view === 'finish' ? '__finish' : '';
+  const L = LESSONS[state.current], sec = L && document.getElementById(L.id); if(!sec) return '';
+  const c = collectLessonSteps(sec)[lessonStepState(L.id).cur]; if(!c) return '';
+  const card = c.card, own = CLS_OWN.find(d => d.card === card.id);
+  if(own){ const o = clsOwn(own); return o && o.cur >= 0 ? `${card.id}:${o.cur}` : `${card.id}:0`; }
+  const hosts = [...card.querySelectorAll('.subtab-host')];
+  for(const h of hosts){ const secs = [...h.children].filter(x => x.matches('section.l0-sub')); const i = secs.findIndex(x => !x.hidden);
+    if(i >= 0 && (hosts.length === 1 || h.getClientRects().length)) return `${h.id}:${i}`; }
+  return card.id;
+}
+/** 마친 칸 목록 */
+function clsDoneKeys(){
+  const doneCards = new Set(cls.seen.__done || []);
+  return CLS_UNITS.filter(u => u.quiz ? !!cls.results[u.lesson + ':quiz'] : (!!cls.results[u.key] || doneCards.has(u.key))).map(u => u.key);
+}
+let clsStSent = '', clsStAt = 0, clsStT = 0;
+function clsStatusSoon(){ if(!isStudent()) return; clearTimeout(clsStT); clsStT = setTimeout(() => clsStatus(false), 500); }
+function clsStatus(beat){
+  const url = clsUrl(); if(!isStudent() || !url || !cls.user) return;
+  const cur = clsCurKey(), done = clsDoneKeys(), sig = cur + '|' + done.join(',');
+  if(sig === clsStSent && (!beat || Date.now() - clsStAt < 25000)) return;   // 바뀐 게 없으면 30초마다 '접속 중' 신호만
+  clsStSent = sig; clsStAt = Date.now();
+  const body = JSON.stringify({ action:'status', sid:cls.user.sid, name:cls.user.name, cur, done });
+  fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }).catch(() => { clsStSent = ''; });
+}
+setInterval(() => { if(isStudent() && !document.hidden) clsStatus(true); }, 30000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) clsStatusSoon(); });
 
 /* --- 수업 설정 받기·적용 --- */
 let clsCfgReady = false;   // 처음 받아 온 설정은 새로 고침 없이 적용
@@ -14408,13 +14488,14 @@ function clsWho(){
   document.querySelectorAll('.lesson > .lesson-hero').forEach(h => {
     let w = h.querySelector(':scope > .who-box'); if(!w){ w = el('div', { class:'who-box' }); h.appendChild(w); }
     if(isStudent()) w.innerHTML = `<span class="who-ic" aria-hidden="true">🧑‍🎓</span><b>${clsEsc(cls.user.sid)}</b><span>${clsEsc(cls.user.name)}</span><button class="btn who-edit" type="button">✏️ 수정</button>`;
-    else if(cls.role === 'admin') w.innerHTML = `<span class="who-ic" aria-hidden="true">👩‍🏫</span><b>관리자</b><span>${cls.mode === 'manage' ? '수업 관리' : '수업 진행'}</span><button class="btn who-admin" type="button">⚙️ 수업 관리</button>`;
+    else if(cls.role === 'admin') w.innerHTML = `<span class="who-ic" aria-hidden="true">👩‍🏫</span><b>관리자</b><span>${cls.mode === 'manage' ? '수업 관리' : cls.mode === 'monitor' ? '모니터링' : '수업 진행'}</span><button class="btn who-mon" type="button">📊 모니터링</button><button class="btn who-admin" type="button">⚙️ 수업 관리</button>`;
     else w.innerHTML = '';
     let lo = h.querySelector(':scope > .who-out');
     if(!lo){ lo = el('button', { class:'btn who-out', type:'button' }, '🚪 로그아웃'); h.appendChild(lo); lo.addEventListener('click', clsAskLogout); }
     lo.hidden = !cls.role;
     const ed = $('.who-edit', w); if(ed) ed.addEventListener('click', () => clsEditUser());
     const ad = $('.who-admin', w); if(ad) ad.addEventListener('click', () => clsOpenAdmin());
+    const mo = $('.who-mon', w); if(mo) mo.addEventListener('click', () => clsOpenMonitor());
   });
 }
 
@@ -14449,9 +14530,9 @@ function clsClearRecords(){
   cls.detail = {};
   [STORAGE_KEY, SUBTAB_KEY, CLS_KEY.results, CLS_KEY.seen, CLS_KEY.detail].forEach(k => safeStorage.remove(k));
 }
-function clsWarn(msg, onOk){
+function clsWarn(msg, onOk, okLabel='기록 지우고 계속'){
   const m = clsModal(`<h3>⚠️ 확인해 주세요</h3><p class="cls-warn">${msg}</p>
-    <div class="cls-row"><button class="btn" type="button" data-a="no">취소</button><button class="btn primary cls-danger" type="button" data-a="ok">기록 지우고 계속</button></div>`, 'cls-top');
+    <div class="cls-row"><button class="btn" type="button" data-a="no">취소</button><button class="btn primary cls-danger" type="button" data-a="ok">${okLabel}</button></div>`, 'cls-top');
   $('[data-a="no"]', m).addEventListener('click', () => m.remove());
   $('[data-a="ok"]', m).addEventListener('click', () => { m.remove(); onOk(); });
 }
@@ -14493,8 +14574,8 @@ function clsLogin(){
     <div class="cls-pane" data-p="admin" hidden>
       <label class="cls-field"><span>관리자 비밀번호</span><input type="password" autocomplete="off" data-f="pw" placeholder="비밀번호"></label>
       <p class="cls-msg" aria-live="polite"></p>
-      <div class="cls-row cls-two"><button class="btn primary" type="button" data-a="run">▶ 수업 진행</button><button class="btn primary cls-alt" type="button" data-a="manage">⚙️ 수업 관리</button></div>
-      <p class="l0-muted cls-note">수업 진행: 모든 활동이 열린 상태로 진행해요. · 수업 관리: 활동 잠금, 수업 통제, 비밀번호를 설정해요.</p>
+      <div class="cls-row cls-two cls-three"><button class="btn primary" type="button" data-a="run">▶ 수업 진행</button><button class="btn primary cls-alt" type="button" data-a="manage">⚙️ 수업 관리</button><button class="btn primary cls-mon-btn" type="button" data-a="monitor">📊 모니터링</button></div>
+      <p class="l0-muted cls-note">수업 진행: 모든 활동이 열린 상태로 진행해요. · 수업 관리: 활동 잠금, 수업 통제, 비밀번호를 설정해요. · 모니터링: 학생마다 지금 하는 소활동과 마친 소활동을 봐요.</p>
     </div>`, 'cls-login');
   m.querySelectorAll('[data-t]').forEach(t => t.addEventListener('click', () => {
     m.querySelectorAll('[data-t]').forEach(x => { const on = x === t; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
@@ -14527,11 +14608,13 @@ function clsLogin(){
     if(clsHash(pw) !== clsPwHash()){ msg.textContent = '비밀번호가 맞지 않아요.'; $('[data-f="pw"]', m).select(); return; }
     sess.set(CLS_KEY.session, JSON.stringify({ role:'admin', mode })); m.remove(); clsStart();
     if(mode === 'manage') clsOpenAdmin();
+    if(mode === 'monitor') clsOpenMonitor();
   };
   $('[data-a="student"]', m).addEventListener('click', goStudent);
   m.querySelectorAll('[data-p="student"] input').forEach(i => i.addEventListener('keydown', e => { if(e.key === 'Enter') goStudent(); }));
   $('[data-a="run"]', m).addEventListener('click', () => goAdmin('run'));
   $('[data-a="manage"]', m).addEventListener('click', () => goAdmin('manage'));
+  $('[data-a="monitor"]', m).addEventListener('click', () => goAdmin('monitor'));
   $('[data-f="pw"]', m).addEventListener('keydown', e => { if(e.key === 'Enter') goAdmin('run'); });
   setTimeout(() => { const f = $('[data-f="sid"]', m); f && f.focus(); }, 30);
 }
@@ -14583,7 +14666,7 @@ async function clsOpenAdmin(){
       <div class="cls-pw"><input type="password" data-f="pw1" placeholder="새 비밀번호"><input type="password" data-f="pw2" placeholder="새 비밀번호 확인"></div>
       <p class="l0-muted cls-note">비워 두면 바뀌지 않아요. (처음 비밀번호: 1234)</p></section>
     <p class="cls-msg" aria-live="polite"></p>
-    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="logout">🔁 첫 화면으로</button><button class="btn primary" type="button" data-a="save">💾 저장하고 적용</button></div>`, 'cls-admin');
+    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="monitor">📊 모니터링</button><button class="btn" type="button" data-a="logout">🔁 첫 화면으로</button><button class="btn primary" type="button" data-a="save">💾 저장하고 적용</button></div>`, 'cls-admin');
   const msg = $('.cls-msg', m);
   const setAll = (v, lid) => m.querySelectorAll(`select[data-key]${lid ? `[data-l="${lid}"]` : ''}`).forEach(s => { s.value = v; });
   m.querySelectorAll('[data-bulk]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); setAll(b.dataset.bulk, b.dataset.l); }));
@@ -14592,6 +14675,7 @@ async function clsOpenAdmin(){
   $('[data-a="close"]', m).addEventListener('click', () => m.remove());
   $('[data-a="run"]', m).addEventListener('click', () => { sess.set(CLS_KEY.session, JSON.stringify({ role:'admin', mode:'run' })); m.remove(); clsStart(); });
   $('[data-a="logout"]', m).addEventListener('click', () => { sess.remove(CLS_KEY.session); m.remove(); clsStart(); });
+  $('[data-a="monitor"]', m).addEventListener('click', () => { m.remove(); clsOpenMonitor(); });
   $('[data-a="save"]', m).addEventListener('click', async () => {
     const pw1 = $('[data-f="pw1"]', m).value, pw2 = $('[data-f="pw2"]', m).value;
     if(pw1 || pw2){ if(pw1 !== pw2){ msg.textContent = '새 비밀번호가 서로 달라요.'; return; } if(pw1.length < 4){ msg.textContent = '비밀번호는 4자 이상으로 정해 주세요.'; return; } }
@@ -14616,6 +14700,103 @@ async function clsOpenAdmin(){
   });
 }
 
+/* --- 모니터링 (관리자) --- */
+const CLS_MON = { view:null, live:false, timer:0 };
+function clsAgo(ms){ const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? `${s}초 전` : s < 3600 ? `${Math.floor(s / 60)}분 전` : `${Math.floor(s / 3600)}시간 전`; }
+function clsCurText(key){
+  if(!key) return '처음 화면';
+  if(key === '__finish') return '활동 기록';
+  const u = CLS_UNITS.find(x => x.key === key); if(!u) return key;
+  const L = CLS_CATALOG[u.li]; return `${L.title} › ${u.si + 1}. ${u.step}${u.short ? ` › ${u.short} ${u.label}` : ''}`;
+}
+async function clsOpenMonitor(){
+  document.querySelectorAll('.cls-monitor').forEach(x => x.remove());
+  if(cls.role === 'admin'){ sess.set(CLS_KEY.session, JSON.stringify({ role:'admin', mode:'monitor' })); cls.mode = 'monitor'; clsWho(); }
+  const opts = CLS_CATALOG.map(L => `<option value="${L.id}">${clsEsc(L.title)}</option>`).join('') + '<option value="__all">전체 주제 한눈에</option>';
+  const m = clsModal(`
+    <div class="cls-ahead"><h2>📊 모니터링</h2><button class="btn" type="button" data-a="close" aria-label="닫기">✕</button></div>
+    <div class="mon-bar">
+      <label class="mon-sel"><span>주제</span><select data-f="view">${opts}</select></label>
+      <label class="cls-switch"><input type="checkbox" data-f="live"${CLS_MON.live ? ' checked' : ''}><span>접속 중인 학생만</span></label>
+      <span class="mon-legend"><b class="mon-s done">✅</b>완료 <b class="mon-s cur">▶</b>진행 중 <b class="mon-s todo">○</b>활동 전 <span class="mon-sep">|</span> <i class="mon-dot on"></i>접속 중 <i class="mon-dot mid"></i>잠시 멈춤 <i class="mon-dot off"></i>접속 끊김</span>
+      <span class="mon-upd" aria-live="polite"></span>
+      <button class="btn" type="button" data-a="refresh">🔄 새로 고침</button>
+    </div>
+    <div class="mon-wrap"><p class="l0-muted">⏳ 학생 정보를 불러오는 중…</p></div>
+    <p class="l0-muted cls-note">학생 화면이 소활동을 옮길 때마다, 그리고 30초마다 알려 와요. 이 화면은 10초마다 저절로 새로 고침돼요. 마친 소활동은 다른 소활동으로 넘어갈 때 기록돼요.</p>
+    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="manage">⚙️ 수업 관리</button><button class="btn" type="button" data-a="clear" title="새 수업을 시작할 때 이전 학생 목록을 비워요">🧹 학생 목록 비우기</button></div>`, 'cls-admin cls-monitor');
+  const vs = $('[data-f="view"]', m); vs.value = CLS_MON.view || 'lesson-0';
+  const wrap = $('.mon-wrap', m), upd = $('.mon-upd', m);
+  let data = null;
+  const close = () => { clearInterval(CLS_MON.timer); m.remove(); };
+  const render = () => {
+    if(!data){ return; }
+    if(!data.ok){ wrap.innerHTML = `<p class="mon-err">⚠️ ${clsEsc(data.error || '학생 정보를 불러오지 못했어요.')}</p>`; return; }
+    const now = data.now || Date.now();
+    let list = (data.students || []).map(x => ({ ...x, ago:now - (x.ts || 0), done:new Set(x.done || []) }));
+    if(CLS_MON.live) list = list.filter(x => x.ago < 90000);
+    list.sort((a, b) => String(a.sid).localeCompare(String(b.sid), 'ko', { numeric:true }) || String(a.name).localeCompare(String(b.name), 'ko'));
+    if(!list.length){ wrap.innerHTML = `<p class="l0-muted mon-empty">${CLS_MON.live ? '지금 접속 중인 학생이 없어요.' : '아직 접속한 학생이 없어요.'}</p>`; return; }
+    const dot = ago => ago < 90000 ? 'on' : ago < 600000 ? 'mid' : 'off';
+    const sym = (x, k) => x.cur === k ? '<td class="mon-c cur" title="진행 중">▶</td>' : x.done.has(k) ? '<td class="mon-c done" title="완료">✅</td>' : '<td class="mon-c todo" title="활동 전">○</td>';
+    const who = x => `<td class="mon-sid">${clsEsc(x.sid)}</td><td class="mon-name"><i class="mon-dot ${dot(x.ago)}" title="${dot(x.ago) === 'on' ? '접속 중' : dot(x.ago) === 'mid' ? '잠시 멈춤' : '접속 끊김'}"></i>${clsEsc(x.name)}</td>
+      <td class="mon-now">${clsEsc(clsCurText(x.cur))}<small>${clsAgo(x.ago)}</small></td>`;
+    let head, rows, foot;
+    if(CLS_MON.view === '__all'){
+      head = `<tr><th rowspan="2">학번</th><th rowspan="2">이름</th><th rowspan="2">현재 소활동</th>${CLS_CATALOG.map(L => `<th colspan="1" class="mon-step">${clsEsc(L.title.split(' ')[0])}</th>`).join('')}<th rowspan="2">전체</th></tr>
+        <tr>${CLS_CATALOG.map(L => `<th class="mon-sub" title="${clsEsc(L.title)}">${clsEsc(L.title.replace(/^\d+\.\s*/, '').slice(0, 6))}</th>`).join('')}</tr>`;
+      rows = list.map(x => { let all = 0;
+        const cells = CLS_CATALOG.map(L => { const us = CLS_UNITS.filter(u => u.lesson === L.id), n = us.filter(u => x.done.has(u.key)).length; all += n;
+          const here = us.some(u => u.key === x.cur), cls2 = here ? 'cur' : n === us.length ? 'done' : n ? 'part' : 'todo';
+          return `<td class="mon-c ${cls2}" title="${clsEsc(L.title)}: ${n}/${us.length} 완료${here ? ' · 지금 진행 중' : ''}">${here ? '▶ ' : n === us.length ? '✅ ' : ''}${n}/${us.length}</td>`; }).join('');
+        return `<tr>${who(x)}${cells}<td class="mon-pct">${Math.round(all / CLS_UNITS.length * 100)}%</td></tr>`; }).join('');
+      foot = `<tr><th colspan="3">지금 이 주제에 있는 학생</th>${CLS_CATALOG.map(L => `<td class="mon-cnt">${list.filter(x => CLS_UNITS.some(u => u.lesson === L.id && u.key === x.cur)).length || ''}</td>`).join('')}<td></td></tr>`;
+    }else{
+      const L = CLS_CATALOG.find(x => x.id === CLS_MON.view), us = CLS_UNITS.filter(u => u.lesson === L.id);
+      const groups = L.steps.map((st, si) => ({ st, si, us:us.filter(u => u.si === si) }));
+      head = `<tr><th rowspan="2">학번</th><th rowspan="2">이름</th><th rowspan="2">현재 소활동</th>${groups.map(g => g.us.length > 1 || g.us[0].short
+          ? `<th colspan="${g.us.length}" class="mon-step">${g.si + 1}. ${clsEsc(g.st.label)}</th>` : `<th rowspan="2" class="mon-step one" title="${clsEsc(g.st.label)}">${g.si + 1}. ${clsEsc(g.st.label)}</th>`).join('')}<th rowspan="2">완료</th></tr>
+        <tr>${groups.filter(g => g.us.length > 1 || g.us[0].short).map(g => g.us.map(u => `<th class="mon-sub" title="${clsEsc(u.label)}">${u.short}<small>${clsEsc(u.label)}</small></th>`).join('')).join('')}</tr>`;
+      rows = list.map(x => { const n = us.filter(u => x.done.has(u.key)).length;
+        return `<tr class="${us.some(u => u.key === x.cur) ? 'here' : ''}">${who(x)}${us.map(u => sym(x, u.key)).join('')}<td class="mon-pct">${n}/${us.length}</td></tr>`; }).join('');
+      foot = `<tr><th colspan="3">▶ 진행 중 / ✅ 완료 (명)</th>${us.map(u => { const a = list.filter(x => x.cur === u.key).length, b = list.filter(x => x.done.has(u.key)).length;
+        return `<td class="mon-cnt"><b>${a || ''}</b>${a && b ? '<br>' : ''}${b ? `<span>${b}</span>` : ''}</td>`; }).join('')}<td></td></tr>`;
+    }
+    const online = (data.students || []).filter(x => now - (x.ts || 0) < 90000).length;
+    wrap.innerHTML = `<p class="mon-sum">👥 학생 <b>${list.length}</b>명 표시 · 지금 접속 중 <b>${online}</b>명</p><div class="mon-scroll"><table class="mon-table"><thead>${head}</thead><tbody>${rows}</tbody><tfoot>${foot}</tfoot></table></div>`;
+  };
+  const load = async () => {
+    const url = clsUrl();
+    if(!url){ data = { ok:false, error:'구글 시트 주소가 없어요. 수업 관리 → 구글 시트 연결에서 주소를 넣어 주세요.' }; render(); return; }
+    try{
+      const res = await fetch(url + (url.includes('?') ? '&' : '?') + `action=monitor&auth=${encodeURIComponent(clsPwHash())}&t=${Date.now()}`);
+      const j = await res.json();
+      data = j && j.ok ? j : { ok:false, error:(j && j.error) || '모니터링 정보를 받지 못했어요. 앱스 스크립트를 최신 코드로 다시 배포했는지 확인해 주세요.' };
+      if(data.ok && !CLS_MON.view){   // 처음 열 때: 학생이 가장 많이 있는 주제를 보여 줌
+        const cnt = {}; (data.students || []).forEach(x => { const u = CLS_UNITS.find(v => v.key === x.cur); if(u) cnt[u.lesson] = (cnt[u.lesson] || 0) + 1; });
+        const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0]; CLS_MON.view = top || 'lesson-0'; vs.value = CLS_MON.view; }
+      if(data.ok) upd.textContent = `${new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })} 기준`;
+    }catch(e){ if(!data || !data.ok) data = { ok:false, error:'인터넷 연결 또는 구글 시트 주소를 확인해 주세요.' }; }
+    render();
+  };
+  vs.addEventListener('change', () => { CLS_MON.view = vs.value; render(); });
+  $('[data-f="live"]', m).addEventListener('change', e => { CLS_MON.live = e.target.checked; render(); });
+  $('[data-a="refresh"]', m).addEventListener('click', load);
+  $('[data-a="close"]', m).addEventListener('click', close);
+  $('[data-a="run"]', m).addEventListener('click', () => { close(); sess.set(CLS_KEY.session, JSON.stringify({ role:'admin', mode:'run' })); clsStart(); });
+  $('[data-a="manage"]', m).addEventListener('click', () => { close(); sess.set(CLS_KEY.session, JSON.stringify({ role:'admin', mode:'manage' })); clsStart(); clsOpenAdmin(); });
+  $('[data-a="clear"]', m).addEventListener('click', () => clsWarn('지금까지 접속한 학생 목록을 비울까요?<br><small>(학생들의 학습 기록은 지워지지 않아요. 학생 화면이 다시 알려 오면 목록에 다시 나타나요.)</small>', async () => {
+    const url = clsUrl(); if(!url) return;
+    const body = JSON.stringify({ action:'monitorClear', auth:clsPwHash() });
+    try{ await fetch(url, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }); }
+    catch(e){ try{ await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }); }catch(e2){} }
+    toast('🧹 학생 목록을 비웠어요.'); load();
+  }, '목록 비우기'));
+  clearInterval(CLS_MON.timer);
+  CLS_MON.timer = setInterval(() => { if(!document.body.contains(m)) return clearInterval(CLS_MON.timer); if(!document.hidden) load(); }, 10000);
+  load();
+}
+
 /* --- 시작할 때 --- */
 cls.cfg = clsNormCfg(jget(CLS_KEY.cfg, null));
 cls.results = jget(CLS_KEY.results, {});
@@ -14636,7 +14817,7 @@ if(startHash === '#finish' && allLessonsDone()) showFinish();
 clsStart();   // 첫 화면(학생·관리자) / 이어서 진행
 
 /* 다음 단계에서 콘솔·다른 스크립트로 쓰기 쉽게 내보내기 */
-Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
+Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
   completeLesson, goTo, renderMath, LESSON_CONTENT, LESSONS, normalizeAnswer, isInputCorrect, auditSolidCounts, countSolid, showFinish, showSolidAudit });
 </script>
 </body>
