@@ -9371,6 +9371,7 @@ function setupLesson4Sim(container){
       $('.st', W.li).textContent = st.solved.has(W) ? '✓' : '';
     });
     $('.l4-solved', container).textContent = st.solved.size;
+    st.solved.forEach(W => clsFlagHit('lesson-4-sim-card', 'w:' + L4_WORDS.indexOf(W)));   // 활동 점수: 맞힌 단어
     $('.l4-hints', container).textContent = st.hints;
     const left = Math.max(0, L4_HINT_MAX - st.hints), hb = $('[data-a="hint"]', container);
     $('.l4-hleft', container).textContent = `(${left}회)`; hb.disabled = left === 0 || st.done;
@@ -11347,6 +11348,7 @@ function l7Rows(box, rows, { onSolved, steps, title, solAfter = false, solLabel 
   if(fbBelow){ box.classList.add('fb-below'); $('.l7-rows-btns', box).after(fb); }   // 피드백 글상자는 제출 버튼 아래
   $('[data-a="ck"]', box).addEventListener('click', () => {
     let right = 0; const sb0 = steps && $('[data-a="sol"]', box); if(sb0) sb0.disabled = false;
+    if([...box.querySelectorAll('.l7-row input')].every(x => x.value.trim())) setTimeout(() => clsExHit(box, box.querySelectorAll('.l7-row.ng').length ? 'sub' : 'ok'), 0);   // 활동 점수: 모두 입력하고 제출(정답)
     rows.forEach((r, i) => { const lab = box.querySelector(`.l7-row[data-i="${i}"]`), v = $('input', lab).value, ok = l7Check(v, r.v);
       lab.classList.toggle('ok', ok); lab.classList.toggle('ng', !ok); $('.mk', lab).textContent = ok ? '✓' : '✗'; if(ok) right++; });
     if(right === rows.length){ fb.className = 'l7-tfb ok'; fb.textContent = rows.length > 1 ? '🎉 모두 정답!' : '🎉 정답!';
@@ -11354,6 +11356,7 @@ function l7Rows(box, rows, { onSolved, steps, title, solAfter = false, solLabel 
     else { fb.className = 'l7-tfb ng'; fb.textContent = `${rows.length}칸 중 ${right}칸 정답! ✗ 표시된 칸을 다시 생각해 보자.`; }
   });
   steps && $('[data-a="sol"]', box).addEventListener('click', e => {   // 정답 보기 ↔ 정답 숨기기
+    clsExHit(box, 'sol');
     const sb = $('.l7-sol-box', box); sb.hidden = !sb.hidden; e.currentTarget.textContent = sb.hidden ? solLabel[0] : solLabel[1]; });
   return { get solved(){ return solved; } };
 }
@@ -14822,6 +14825,24 @@ const CLS_SCORE_CUSTOM = {
     add(D[5], '탐색', `'${D[5]}' 골라서 살펴보기`, 1, f => f.seen(u, 5) ? 1 : 0);
     add(D[5], '활동 완료', '[✏️ 성질 확인하기]를 눌러 단어 카드를 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
   },
+  'lesson-4-sim-card': (add, u) => {   // 가로세로 낱말 퍼즐: 맞힌 단어 비율 → 0~10점 (자연수)
+    const N = L4_WORDS.length;
+    add('낱말 퍼즐', '활동 완료', `가로세로 단어 ${N}개 중 맞힌 비율로 점수 (10% 이상 1점 … 100% 10점, 자연수)`, 10, f => Math.floor(10 * Math.min(N, f.flags(u, 'w:')) / N + 1e-9));
+  },
+  'lesson-5-sim-card:4': (add, u, c) => {   // 기둥 부피: 도형마다 탐색·조작을 모두 마친 수
+    const subs = clsSubs(u, c), D = c.det || [];
+    const doneN = f => D.filter((_, i) => { const xs = subs.filter(x => x.i === i); return xs.length && xs.every(x => x.test(f) > 0); }).length;
+    add('도형 5개', '탐색·조작', `${D.join('·')} 각각 탐색(밑면 쌓기 버튼 2개)과 조작(3D 화면)을 모두 마친 도형이 1개면 1점, 2~4개면 2점, 5개면 3점`, 3,
+      f => { const n = doneN(f); return n >= 5 ? 3 : n >= 2 ? 2 : n >= 1 ? 1 : 0; });
+  },
+  'lesson-5-concept-card': (add, u) => {   // 기둥의 부피 › 정리와 예제
+    add('(전체)', '탐색', '활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    [['삼각기둥 문제', 0], ['원기둥 문제', 1]].forEach(([nm, i]) => {
+      add(nm, '빈칸 입력', '빈칸 2개를 모두 입력하고 [📤 제출] 누르기', 1, f => f.flag(u, `ex${i}:sub`) ? 1 : 0);
+      add(nm, '확인·제출', '제출한 답이 모두 정답', 1, f => f.flag(u, `ex${i}:ok`) ? 1 : 0);
+    });
+    add('풀이 보기', '확인·제출', '[📖 풀이 보기] 버튼 2개를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+  },
   'lesson-1-sim:0': (add, u) => {   // 각뿔대
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
     add('(공통)', '확인·제출', '[✏️ 개념 확인하기] 버튼 누르기', 1, f => f.checked(u, '✏️ 개념 확인하기') ? 1 : 0);
@@ -14948,6 +14969,9 @@ function clsComposition(){
 /** 0. 복습 › 개념: 도형 탭 열기(t)·개념 확인 마침(k) 기록 */
 /** 활동 안의 '끝까지 마침' 신호 기록 (예: 분류 활동 10개 모두) */
 function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name); }catch(e){} }
+/** 예제 상자(l7Rows) 기록: 소활동 안에서 몇 번째 예제인지와 함께 (sub 제출 · ok 정답 · sol 풀이 보기) */
+function clsExHit(box, kind){ try{ const u = clsUnitOf(box); if(!u) return; const i = [...u.root.querySelectorAll('.l7-rows')].indexOf(box);
+  if(kind === 'ok') clsFlagHit(u.key, `ex${i}:sub`); clsFlagHit(u.key, `ex${i}:${kind}`); }catch(e){} }
 function clsWordHit(sec){ try{ const u = sec && clsUnitOf(sec); if(u) clsFlagHit(u.key, 'word'); }catch(e){} }
 /* 이 기기에 남은 단어 카드 완료 기록도 점수에 넣기 */
 setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word');
