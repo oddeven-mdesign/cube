@@ -1138,7 +1138,11 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 .l6-sstep{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
 .l6-sstep .l6-sq{margin:0 0 8px;font-weight:700;display:flex;gap:8px;align-items:flex-start}
 .l6-sstep .l6-sq .no{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#FFE0B2;color:#E65100;font-size:.85rem}
-.l6-sopts{display:flex;flex-wrap:wrap;gap:6px}
+.l6-sopts{display:grid;gap:6px}
+.l6-sopts.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.l6-sopts.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.l6-sopts .btn{width:100%;min-width:0;justify-content:center;text-align:center;word-break:keep-all}
+.l6-split-left .l6-sdone{margin-top:12px}
 .l6-sopts .btn.ok{background:#E8F5E9;border-color:#43A047;color:#1B5E20}
 .l6-sopts .btn.ng{background:#FFEBEE;border-color:#E53935;color:#B71C1C}
 .l6-sopts .btn:disabled{opacity:.55}.l6-sopts .btn.ok:disabled{opacity:1}
@@ -9708,6 +9712,7 @@ function l5ExRender(box, EX){
 /* ---------- 예제 따라 하기 ---------- */
 function l5SetupExamples(){
   const box = document.querySelector('#lesson-5 .l5-examples'); if(!box) return;
+  { const row = el('div', { class:'sim-row l8-pad-row' }); box.after(row); addScratchpad(row, { toggleIn:row }); }   // 예제 연습장
   const EX = [
     { title:'⑴', q:'밑면이 두 변의 길이가 5 cm, 10 cm인 직각삼각형이고, 높이가 9 cm인 삼각기둥의 부피를 구해 보자.',
       fig:`<svg viewBox="-5 0 215 180" class="l3-svg" role="img" aria-label="밑면이 직각삼각형인 삼각기둥">
@@ -10477,6 +10482,7 @@ async function l6SetupPour(wrap){
   }
   function ui(){
     countEl.textContent = st.count;
+    $('.l6-bars', wrap).hidden = !(st.count >= 3 && st.phase === 'idle');   // 기둥·뿔 부피 값은 모래 붓기를 마친 뒤에
     const busy = st.phase !== 'idle';
     btnFill.disabled = busy || st.pyrK > 0.99 || st.count >= 3;
     btnPour.disabled = busy || st.pyrK < 0.99 || st.count >= 3;
@@ -10556,14 +10562,20 @@ async function l6SetupCubeSplit(wrap){
   const Q = [
     { t:'분할한 입체도형의 이름은 무엇일까?', opts:['삼각뿔', '사각뿔', '삼각기둥', '오각뿔'], a:1,
       why:'빨간 점이 꼭짓점이고 밑면이 정육면체의 면(정사각형)이니까 <b>사각뿔</b>이야.' },
-    { t:'분할한 세 입체도형은 서로 어떤 관계일까?', opts:['모두 합동이다', '크기가 모두 다르다', '두 개만 합동이다'], a:0,
+    { t:'분할한 세 입체도형은 서로 어떤 관계일까?', opts:['크기가 모두 다르다', '두 개만 합동이다', '모양은 같지만 크기가 다르다', '모두 합동이다'], a:3,
       why:'세 사각뿔은 밑면이 모두 정육면체의 면이고 높이가 모두 정육면체의 한 모서리 길이와 같아서 <b>모두 합동</b>이야.' },
     { t:'사각뿔 1개의 부피는 정육면체 부피의 얼마일까?', opts:[F(1, 2), F(1, 3), F(1, 4), F(1, 6)], a:1,
       why:`합동인 사각뿔 3개가 정육면체를 꼭 채우니까 사각뿔 1개의 부피는 정육면체 부피의 <b>${F(1, 3)}</b>이야.` },
   ];
   wrap.innerHTML = `
     <div class="l0-gal-grid">
-      <div><div class="l6-cube-v"></div></div>
+      <div class="l6-split-left"><div class="l6-cube-v"></div>
+        <div class="l6-sstep l6-sdone" data-s="${Q.length + 1}" hidden>
+          <p class="l6-sq"><span class="no">✓</span><span>탐구 정리</span></p>
+          <div class="l0-note">정육면체는 한 꼭짓점(●)을 꼭짓점으로 하는 <b>합동인 사각뿔 3개</b>로 나눌 수 있어. 그러니까 사각뿔 1개의 부피는 정육면체 부피의 <b>${F(1, 3)}</b>!</div>
+          <div class="l6-cube-eq">$$\\begin{aligned}&(\\text{사각뿔 1개의 부피})\\\\ &\\quad= \\dfrac{1}{3} \\times (\\text{정육면체의 부피})\\\\ &\\quad= \\dfrac{1}{3} \\times (\\text{밑넓이}) \\times (\\text{높이})\\end{aligned}$$</div>
+        </div>
+      </div>
       <div class="l0-side l6-split-steps">
         <div class="l6-sstep" data-s="0">
           <p class="l6-sq"><span class="no">1</span><span>정육면체의 한 꼭짓점(<b style="color:#D50000">●</b>)을 꼭짓점으로 하는 뿔로 나눠 보자.</span></p>
@@ -10571,18 +10583,14 @@ async function l6SetupCubeSplit(wrap){
         </div>
         ${Q.map((q, i) => `<div class="l6-sstep" data-s="${i + 1}" hidden>
           <p class="l6-sq"><span class="no">${i + 2}</span><span>${q.t}</span></p>
-          <div class="l6-sopts" role="group" aria-label="${q.t}">${q.opts.map((o, j) => `<button class="btn" type="button" data-j="${j}">${o}</button>`).join('')}</div>
+          <div class="l6-sopts ${i < 2 ? 'g2' : 'g4'}" role="group" aria-label="${q.t}">${q.opts.map((o, j) => `<button class="btn" type="button" data-j="${j}">${o}</button>`).join('')}</div>
           <p class="l6-sfb" aria-live="polite"></p></div>`).join('')}
-        <div class="l6-sstep l6-sdone" data-s="${Q.length + 1}" hidden>
-          <p class="l6-sq"><span class="no">✓</span><span>탐구 정리</span></p>
-          <div class="l0-note">정육면체는 한 꼭짓점(●)을 꼭짓점으로 하는 <b>합동인 사각뿔 3개</b>로 나눌 수 있어. 그러니까 사각뿔 1개의 부피는 정육면체 부피의 <b>${F(1, 3)}</b>!</div>
-          <div class="l6-cube-eq">$$\\begin{aligned}&(\\text{사각뿔 1개의 부피})\\\\ &\\quad= \\dfrac{1}{3} \\times (\\text{정육면체의 부피})\\\\ &\\quad= \\dfrac{1}{3} \\times (\\text{밑넓이}) \\times (\\text{높이})\\end{aligned}$$</div>
-        </div>
       </div>
     </div>`;
   /* 단계 진행: 분해 → 이름 → 관계 → 부피 비교 → (탐구를 마치면) 식 */
-  const steps = [...wrap.querySelectorAll('.l6-sstep')];
-  const open = k => { const st = steps[k]; if(st && st.hidden){ st.hidden = false; renderMath(st); st.scrollIntoView({ behavior:'smooth', block:'nearest' }); } };
+  const steps = [...wrap.querySelectorAll('.l6-sstep')].sort((a, b) => a.dataset.s - b.dataset.s);
+  const open = k => { const st = steps[k]; if(st && st.hidden){ st.hidden = false; renderMath(st); st.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+    if(k === steps.length - 1) clsFlagHit('lesson-6-sim:0', 'done'); };   // 활동 점수: 단계 질문을 모두 맞혀 탐구 정리까지
   steps.slice(1, Q.length + 1).forEach((st, i) => {
     const q = Q[i], fb = $('.l6-sfb', st);
     st.querySelectorAll('[data-j]').forEach(b => b.addEventListener('click', () => {
@@ -10630,6 +10638,7 @@ function l6SetupConcept(){
   if(tb){ const b = $('[data-a="reveal"]', tb), h = $('.l1-hint', tb);
     b.addEventListener('click', () => { const on = !h.classList.contains('shown'); h.classList.toggle('shown', on); if(on) tb.dataset.seen = '1'; b.textContent = on ? '🙈 숨기기' : '✓ 확인'; }); }
   const box = document.querySelector('#lesson-6 .l6-examples'); if(!box) return;
+  { const row = el('div', { class:'sim-row l8-pad-row' }); box.after(row); addScratchpad(row, { toggleIn:row }); }   // 예제 연습장
   const EX = [
     { title:'', q:'밑면이 한 변의 길이가 5 cm인 정사각형이고, 높이가 6 cm인 사각뿔의 부피를 구해 보자.',
       fig:`<svg viewBox="0 0 200 160" class="l3-svg" role="img" aria-label="밑면이 정사각형인 사각뿔">
@@ -14889,6 +14898,10 @@ const CLS_SCORE_CUSTOM = {
       add(nm, '확인·제출', '제출한 답이 모두 정답', 1, f => f.flag(u, `ex${i}:ok`) ? 1 : 0);
     });
     add('풀이 보기', '확인·제출', '[📖 풀이 보기] 버튼 2개를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+  },
+  'lesson-6-sim:0': (add, u, c) => {   // 뿔의 부피 › 도형 분할 (단계별 탐구)
+    clsSubs(u, c, new Set(['🧩 조립'])).forEach(x => add(x.d, x.k, x.crit, 1, x.test));
+    add('단계별 탐구', '선택 문제', '이름·관계·부피 비교 질문 3개를 모두 맞혀 탐구 정리(식)까지 보기', 1, f => f.flag(u, 'done') ? 1 : 0);
   },
   'lesson-6-think-card': (add, u) => {   // 뿔의 부피 › 생각 열기
     add('(전체)', '탐색', '활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
