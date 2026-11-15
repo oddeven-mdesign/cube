@@ -2330,6 +2330,10 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 .l7-rc-btns{justify-content:flex-end;margin:0}
 .l7-explore-area .l2-sub-h{margin-top:0}
 .l7-explore-area .l7-rc-sum{margin-top:10px}
+.l7-help-row{display:flex;gap:10px;align-items:stretch}
+.l7-help-row .l7-face{flex:1;min-width:0;margin:0!important}
+.l7-help-row .l7-face.l7-help-hide{display:none}
+.l7-help-btn{margin-left:auto;flex:none;white-space:nowrap;min-height:44px}
 
 /* 계산 영역 [원뿔 탐구]·[겉넓이 계산하기] 같은 크기로 단 너비에 맞춤 */
 .l0-side .l7-side-btns{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -11488,6 +11492,15 @@ function l7AttachCalc(boxEl, unfP, gate, btnOpen, btnClose, before, after){
   const top = el('div', { class:'l7-two-top' });
   [...(before || []), $('.l7-face', boxEl)].forEach(n => n && top.appendChild(n));
   const lg = $('.l7-legend', boxEl); if(lg) lg.hidden = true;
+  let helpReset = null;
+  if(boxEl.matches('.l7-pyr, .l7-cone')){   // 뿔 겉넓이: 안내·계산식 글상자는 [💡 도움 보기]로 열고 닫음 (처음에는 숨김)
+    const fbx = $('.l7-face', top), hrow = el('div', { class:'l7-help-row' });
+    if(fbx){ fbx.before(hrow); hrow.appendChild(fbx); }
+    const hb = el('button', { class:'btn l7-help-btn', type:'button', 'aria-expanded':'false' }, '💡 도움 보기'); hrow.appendChild(hb);
+    const setH = on => { if(fbx) fbx.classList.toggle('l7-help-hide', !on); hb.setAttribute('aria-expanded', String(on)); hb.textContent = on ? '🙈 도움 닫기' : '💡 도움 보기'; };
+    hb.addEventListener('click', () => setH(hb.getAttribute('aria-expanded') !== 'true'));
+    setH(false); helpReset = () => setH(false);
+  }
   [top, $('.l7-table', boxEl), two, ...(after || [])].forEach(n => n && calc.appendChild(n));
   [$('.l7-info', boxEl), concept].forEach(n => n && two.appendChild(n));
   boxEl.appendChild(calc);
@@ -11498,7 +11511,7 @@ function l7AttachCalc(boxEl, unfP, gate, btnOpen, btnClose, before, after){
   cb.addEventListener('click', () => {
     gate.open = calc.hidden; calc.hidden = !gate.open; cb.setAttribute('aria-pressed', String(gate.open));
     cb.textContent = gate.open ? btnClose : btnOpen;
-    if(!gate.open) hideLate(true);
+    if(!gate.open){ hideLate(true); helpReset && helpReset(); }
     unfP.then(c => { if(!c) return; if(!gate.open && c.resetCalc) c.resetCalc(); else c.refresh && c.refresh(); });
     if(!gate.open) calc.querySelectorAll('.l1-think').forEach(t => {
       t.querySelectorAll('[aria-pressed]').forEach(b => { b.setAttribute('aria-pressed', 'false'); b.classList.remove('ok', 'ng'); });
@@ -11938,6 +11951,8 @@ async function l7SetupB(panel, done){
     { onSolved:() => { w1 = true; finish(); }, fbBelow:true, steps:['큰 부채꼴: 반지름 $15$, 호의 길이 $2\\pi \\times 6 = 12\\pi$ → $\\dfrac{1}{2} \\times 15 \\times 12\\pi = 90\\pi\\,(\\text{cm}^2)$', '작은 부채꼴: 반지름 $5$, 호의 길이 $2\\pi \\times 2 = 4\\pi$ → $\\dfrac{1}{2} \\times 5 \\times 4\\pi = 10\\pi\\,(\\text{cm}^2)$', '(옆면의 넓이) $= 90\\pi - 10\\pi = 80\\pi\\,(\\text{cm}^2)$', '(겉넓이) $= \\pi \\times 2^2 + \\pi \\times 6^2 + 80\\pi = 4\\pi + 36\\pi + 80\\pi = 120\\pi\\,(\\text{cm}^2)$'] });
   l7Rows($('.l7-fr2', panel), [{ label:'큰 원뿔의 겉넓이', v:l7val(126, true) }, { label:'작은 원뿔의 겉넓이', v:l7val(14, true) }, { label:'단면의 넓이', v:l7val(4, true) }, { label:'원뿔대의 겉넓이', v:l7val(120, true) }],
     { onSolved:() => { w2 = true; finish(); }, fbBelow:true, steps:['(큰 원뿔의 겉넓이) $= \\pi \\times 6^2 + \\pi \\times 6 \\times 15 = 36\\pi + 90\\pi = 126\\pi\\,(\\text{cm}^2)$', '(작은 원뿔의 겉넓이) $= \\pi \\times 2^2 + \\pi \\times 2 \\times 5 = 4\\pi + 10\\pi = 14\\pi\\,(\\text{cm}^2)$', '(단면의 넓이) $= \\pi \\times 2^2 = 4\\pi\\,(\\text{cm}^2)$ ← 작은 원뿔의 밑면은 원뿔대에 없고, 원뿔대의 위 밑면은 큰 원뿔에 없으니 두 번 더해', '(겉넓이) $= 126\\pi - 14\\pi + 4\\pi \\times 2 = 120\\pi\\,(\\text{cm}^2)$'] });
+  // 계산기: 겉넓이 계산 · 생활 문제 · 도전 문제
+  [$('.l7-exgrid', panel), $('.l7-hat-ex', panel), $('.l7-two', panel)].forEach(g => { if(!g) return; const row = el('div', { class:'sim-row l8-pad-row' }); g.after(row); addCalculator(row); });
   l7SetupRollCone($('.l7-rollcone', panel), () => { const c = $('.l7-cone', panel); c && c._exploreDone && c._exploreDone(); });
   const gPyr = { open:false };
   const PYRN = { 3:'삼각뿔', 4:'사각뿔', 5:'오각뿔' };
@@ -11960,7 +11975,9 @@ function l7SetupRollCone(wrap, onDone){
   wrap.innerHTML = `<div class="l7-rc-grid"><div class="l7-rc-svg"></div>
       <div class="l7-rc-side"><div class="l7-rc-info" aria-live="polite"></div><div class="l7-rc-sl"></div>
         <div class="sim-row l7-rc-btns"><button class="btn" type="button" data-a="back">↺ 처음으로</button><button class="btn primary" type="button" data-a="go">🔄 굴리기</button></div></div></div>
-    <div class="concept-box l7-rc-sum" hidden><span class="concept-title">✨ 알게 된 점</span>원이 <b>딱 한 바퀴</b> 굴러서 호를 모두 지나갔어. 그러니까 <b class="l7-hl">(부채꼴의 호의 길이) $=$ (밑면인 원의 둘레) $= 2\\pi r$</b>이야.</div>`;
+    <div class="wc-wrap l7-rc-sum" data-wordcheck="ipche-l7-rc-arc" data-title="부채꼴의 호의 길이" hidden>
+      <div class="concept-box wc-box"><span class="concept-title">✨ 알게 된 점</span>원이 <b>딱 한 바퀴</b> 굴러서 호를 모두 지나갔어. 그러니까 <span class="l7-hl">(${l0T('부채꼴의 호의 길이')}) $=$ (${l0T('밑면인 원의 둘레')}) $=$ ${l0T('2πr', '$2\\pi r$')}</span>이야.</div>
+      ${WC_UI}</div>`;
   const box = $('.l7-rc-svg', wrap), info = $('.l7-rc-info', wrap), sum = $('.l7-rc-sum', wrap);
   renderMath(sum);
   // 3D 원뿔 라벨과 같은 모양의 길이 표시
