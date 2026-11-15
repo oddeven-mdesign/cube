@@ -6778,6 +6778,7 @@ function l2SetupWhyNot(){
   })));
   $('[data-a="check1"]', box).addEventListener('click', () => {
     if(pickOX.some(v => v === undefined)){ toast('세 도형 모두 O 또는 X를 골라 보자!'); return; }
+    clsFlagHit('lesson-2-concept-card', 'ox3');   // 활동 점수: 세 문제에 모두 답하고 [확인]
     let all = true;
     cards.forEach((w, i) => {
       const it = ITEMS[i], ok = pickOX[i] === it.regular; if(!ok) all = false;
@@ -6802,6 +6803,7 @@ function l2SetupWhyNot(){
   }));
   $('[data-a="check2"]', box).addEventListener('click', () => {
     let all = true;
+    if(cards.every((w, i) => ITEMS[i].regular || w.querySelector('[data-c][aria-pressed="true"]'))) clsFlagHit('lesson-2-concept-card', 'why');   // 활동 점수
     cards.forEach((w, i) => {
       const it = ITEMS[i]; if(it.regular) return;
       const got = [...w.querySelectorAll('[data-c][aria-pressed="true"]')].map(b => +b.dataset.c).sort();
@@ -7060,6 +7062,7 @@ async function l2SetupVertexSim(wrap){
     else { res = '실패'; why = '360°보다 커서 겹쳐'; }
     if(st.p === 6) st.hexTried = true;
     st.records.set(key, { p:st.p, k:st.k, sum:sum(), res, why });
+    clsFlagHit('lesson-2-sim:0', 'try:' + key); if(s === 'ok') clsFlagHit('lesson-2-sim:0', 'found:' + solidInfo.name);   // 활동 점수: 기록표
     renderRecords();
   }
   function renderRecords(){
@@ -7626,6 +7629,7 @@ function l2SetupFactTable(wrap){
   $('[data-a="clear"]', wrap).addEventListener('click', render);
   $('[data-a="check"]', wrap).addEventListener('click', () => {
     let right = 0, total = 0, empty = 0;
+    setTimeout(() => clsFlagHit('lesson-2-sim:2', empty ? 'fact:part' : 'fact:full'), 0);   // 활동 점수: 관찰 표 [확인]
     wrap.querySelectorAll('td[data-c]').forEach(td => {
       const [rk, kk] = td.dataset.c.split('|'), ans = L2_FACTS[kk][rk], inp = td.querySelector('select, input'), v = inp.value.trim();
       total++;
@@ -14713,6 +14717,24 @@ async function clsOpenAdmin(){
    ③ 점수 계산(clsScoreCalc): 학생의 진행 기록(이어하기 데이터)만으로 계산 → 구글 시트 '활동 점수' 탭
    ===================================================================== */
 const CLS_SCORE_CAT = {"lesson-0-goal-card":{},"lesson-0-think-card":{"grp":1},"lesson-0-concept-card":{"det":["직육면체·정육면체","각기둥","각뿔","원기둥","원뿔","구","한눈에 정리"],"l0c":1},"lesson-0-sim-card:0":{"det":["직육면체·정육면체","각기둥","각뿔","원기둥·원뿔·구"],"act":1,"parts":[["직육면체:면","직육면체:모서리","직육면체:꼭짓점","정육면체:면","정육면체:모서리","정육면체:꼭짓점"],[":밑면",":옆면",":모서리",":꼭짓점",":높이"],[":밑면",":옆면",":모서리",":꼭짓점",":각뿔의 꼭짓점",":높이"],["원기둥:밑면","원기둥:옆면","원기둥:높이","원뿔:밑면","원뿔:옆면","원뿔:원뿔의 꼭짓점","원뿔:모선","원뿔:높이","구:구의 중심","구:반지름"]]},"lesson-0-sim-card:1":{"det":["직육면체·정육면체","각기둥","각뿔","원기둥·원뿔·구"],"act":1,"net":{"btn":[["직육면체","정육면체","📂 펼치기","autoRotate","reset","🏷️ 면 이름"],["📂 펼치기","autoRotate","reset","🏷️ 면 이름"],["📂 펼치기","autoRotate","reset","🏷️ 면 이름"],["원기둥","원뿔","구","📂 펼치기","autoRotate","reset","🏷️ 면 이름"]],"sl":[1,2,2,1]}},"lesson-0-sim-card:2":{"act":1,"grp":1},"lesson-0-quiz-card":{"quiz":5},"lesson-0-preview-card":{},"lesson-1-goal-card":{},"lesson-1-think-card":{"act":1},"lesson-1-concept:0":{"chk":["✏️ 개념 확인하기"]},"lesson-1-concept:1":{"act":1},"lesson-1-concept:2":{"det":["사각기둥","삼각기둥","삼각뿔","사각뿔"],"act":1},"lesson-1-concept:3":{"det":["사각기둥","삼각기둥","사각뿔"],"chk":["✔ 단면 확인"],"act":1,"grp":1},"lesson-1-sim:0":{"chk":["✏️ 개념 확인하기"],"act":1},"lesson-1-sim:1":{"act":1},"lesson-1-sim:2":{"det":["두 밑면","옆면","높이","옆모서리 연장"],"chk":["🔍 특징 확인하기"],"act":1},"lesson-1-sim:3":{"inp":9,"chk":["🔍 관찰 확인하기","✓ 확인","✓ 확인하기"],"act":1},"lesson-1-quiz-card":{"quiz":5},"lesson-2-goal-card":{},"lesson-2-think-card":{"chk":["✓ 확인"],"act":1,"grp":3},"lesson-2-concept-card":{"chk":["✏️ 개념 확인하기","✓ 확인"],"act":1,"grp":3},"lesson-2-sim:0":{"det":["△ 정삼각형","□ 정사각형","⬠ 정오각형","⬡ 정육각형"],"act":1},"lesson-2-sim:1":{"det":["정사면체","정육면체","정팔면체","정십이면체","정이십면체"],"act":1},"lesson-2-sim:2":{"det":["정사면체","정육면체","정팔면체","정십이면체","정이십면체"],"inp":20,"chk":["찾기 완료","🔍 관찰 확인하기","✓ 확인"],"act":1},"lesson-2-quiz-card":{"quiz":5},"lesson-3-goal-card":{},"lesson-3-think-card":{"chk":["▶ 돌려서 확인하기"],"act":1,"grp":1},"lesson-3-concept-card":{"chk":["✏️ 개념 확인하기"]},"lesson-3-sim:0":{"det":["직사각형","직각삼각형","반원","사다리꼴","원","도형 6","도형 7","도형 8","✏️직접 그리기"],"act":1},"lesson-3-sim:1":{"det":["직각삼각형","직사각형","사다리꼴"],"act":1},"lesson-3-sim:2":{"act":1},"lesson-3-sim:3":{"det":["📘 원뿔대","✂️ 원뿔대 만들기","🔎 원뿔대 탐색","🗺️ 원뿔대 전개도"],"inp":2,"chk":["✏️ 개념 확인하기","📘 이해 확인하기","✓ 확인","🔍 특징 확인하기"],"act":1,"grp":1},"lesson-3-sim:4":{"det":["원기둥","원뿔","원뿔대","구","회전체 단면","회전체 성질"],"chk":["✓ 확인","✏️ 성질 확인하기"],"act":1},"lesson-3-quiz-card":{"quiz":5},"lesson-4-goal-card":{},"lesson-4-think-card":{},"lesson-4-sim-card":{"inp":1,"chk":["✓ 단어 확인","📋 전체 채점"],"act":1},"lesson-4-quiz-card":{"quiz":5},"lesson-5-goal-card":{},"lesson-5-think-card":{"act":1},"lesson-5-sim-card:0":{"act":1},"lesson-5-sim-card:1":{"act":1},"lesson-5-sim-card:2":{"act":1},"lesson-5-sim-card:3":{"act":1},"lesson-5-sim-card:4":{"det":["△ 삼각형","□ 사각형","⬠ 오각형","⬡ 육각형","○ 원"],"act":1},"lesson-5-concept-card":{"inp":4,"chk":["📤 제출"],"act":1},"lesson-5-quiz-card":{"quiz":5},"lesson-6-goal-card":{},"lesson-6-think-card":{"act":1,"grp":1},"lesson-6-sim:0":{"det":["삼각뿔","사각뿔","오각뿔","원뿔"],"act":1},"lesson-6-sim:1":{"act":1},"lesson-6-concept-card":{"inp":4,"chk":["✓ 확인","📤 제출"],"act":1},"lesson-6-cups-card":{"chk":["🥤 부피 확인"],"act":1,"grp":1},"lesson-6-quiz-card":{"quiz":5},"lesson-7-goal-card":{},"lesson-7-sim:0":{"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-sim:1":{"det":["삼각기둥","사각기둥","오각기둥","원기둥"],"inp":3,"chk":["✓ 확인"],"act":1,"grp":1},"lesson-7-sim:2":{"chk":["✏️ 개념 확인하기"]},"lesson-7-sim:3":{"inp":6,"chk":["📤 제출"]},"lesson-7-sim:4":{"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-simB:0":{"det":["삼각뿔","사각뿔","오각뿔"],"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-simB:1":{"det":["🔍 원뿔 탐구","🧮 겉넓이 계산하기"],"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-simB:2":{"chk":["✏️ 개념 확인하기"]},"lesson-7-simB:3":{"inp":10,"chk":["📤 제출"]},"lesson-7-simB:4":{"inp":3,"chk":["📤 제출"]},"lesson-7-simB:5":{"inp":12,"chk":["📤 제출"]},"lesson-7-quiz-card":{"quiz":6},"lesson-8-goal-card":{},"lesson-8-think-card":{"act":1},"lesson-8-sim:0":{"grp":3},"lesson-8-sim:1":{"det":["🍦 원뿔 모양 그릇으로 붓기","⚽ 구 모양 그릇으로 붓기","🌊 원기둥에 구 넣기"],"act":1},"lesson-8-sim:2":{"det":["↔️ 나란히 보기","🪆 겹쳐 보기"],"act":1},"lesson-8-sim:3":{"inp":2,"chk":["📤 제출"],"act":1},"lesson-8-concept:0":{"grp":2},"lesson-8-concept:1":{"act":1},"lesson-8-ex:0":{"chk":["✏️ 개념 확인하기"]},"lesson-8-ex:1":{"chk":["✏️ 개념 확인하기"]},"lesson-8-ex:2":{"inp":2,"chk":["📤 제출"],"act":1},"lesson-8-ex:3":{"inp":2,"chk":["📤 제출"],"act":1},"lesson-8-quiz-card":{"quiz":5}};
+/** 세부활동마다 탐색(기능 버튼)·조작(슬라이더·3D) 점수 칸 — w: 칸 하나의 배점, skip: 탐색에서 뺄 버튼 */
+function clsDetailLeaves(add, u, c, w = 1, skip = new Set()){
+  const dets = c.det && c.det.length ? c.det : [null];
+    dets.forEach((d, i) => {
+      const di = d == null ? -1 : i, dn = d == null ? '(전체)' : d, at = d ? `'${d}'에서 ` : '';
+      const F0 = (c.fx && c.fx[d == null ? 0 : i]) || { b:[], s:0, v:0 }, F = { ...F0, b:F0.b.filter(x => !skip.has(x)) };
+      const pt = c.parts && c.parts[i];   // 0. 복습 › 3D 도형 갤러리: 구성 요소 버튼을 모두 눌러야 탐색 인정
+      if(pt){ const shapes = [...new Set(pt.map(x => x.split(':')[0]).filter(Boolean))];
+        add(dn, '탐색', `'${d}'${shapes.length > 1 ? `(${shapes.join('·')} 각각)` : ''}의 구성 요소 버튼 ${pt.length}개를 모두 눌러 보기`, 1, f => pt.every(x => f.part(u, `${i}:${x}`)) ? 1 : 0); }
+      else if(F.b.length)   // 기능 버튼을 모두 1번 이상 눌러야 탐색 인정
+        add(dn, '탐색', F.b.length === 1 ? `${at}기능 버튼 [${F.b[0]}] 누르기` : `${at}기능 버튼 ${F.b.length}개(${F.b.map(x => CLS_TOOL_NAME[x] || x.replace(/ℓ.*$/, 'ℓ')).join(', ')})를 모두 1번 이상 누르기`, w, f => F.b.every(x => f.btn(u, `${di}:${x}`)) ? w : 0);
+      else add(dn, '탐색', d == null ? (u.short ? '소활동 열어서 살펴보기' : '활동 열어서 살펴보기') : `'${d}' 골라서 살펴보기`, w, f => f.seen(u, di) ? w : 0);
+      if(F.s || F.v){        // 슬라이더·3D 화면을 모두 조작해야 조작 인정
+        const what = [F.s ? `슬라이더${F.s > 1 ? ` ${F.s}개` : ''}` : '', F.v ? `3D 화면${F.v > 1 ? ` ${F.v}개` : ''}` : ''].filter(Boolean).join('와 ');
+        add(dn, '조작', `${at}${what}${/면$/.test(what) ? '을' : '를'} 모두 조작하기`, w, f => f.sliders(u, di) >= F.s && f.views(u, di) >= F.v ? w : 0);
+      }
+    });
+}
 /* 세부활동마다 [기능 버튼 id 목록, 슬라이더 수, 3D 화면 수] — 화면을 모두 열어 조사 (정답·확인·제출·처음으로·접기·멈추기·정답 보기 등은 제외) */
 const CLS_SCORE_FX = {"lesson-0-goal-card":[[[],0,0]],"lesson-0-think-card":[[[],0,0]],"lesson-0-sim-card:0":[[["개수 보기","직육면체","정육면체","autoRotate","reset","faceColor","edges","vertices","transparent","면","모서리","꼭짓점"],0,1],[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent","밑면","옆면","모서리","꼭짓점","높이"],1,1],[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent","밑면","옆면","모서리","꼭짓점","각뿔의 꼭짓점","높이"],1,1],[["개수 보기","원기둥","원뿔","구","autoRotate","reset","faceColor","edges","vertices","transparent","밑면","옆면","높이","원뿔의 꼭짓점","모선","구의 중심","반지름"],0,1]],"lesson-0-sim-card:1":[[["직육면체","정육면체","📂 펼치기","autoRotate","reset","🏷️ 면 이름"],1,1],[["📂 펼치기","autoRotate","reset","🏷️ 면 이름"],2,1],[["📂 펼치기","autoRotate","reset","🏷️ 면 이름"],2,1],[["원기둥","원뿔","구","📂 펼치기","autoRotate","reset","🏷️ 면 이름"],1,1]],"lesson-0-sim-card:2":[[[],0,0]],"lesson-0-preview-card":[[["💡 중학교에서는 입체도형을 이렇게 나눠요!"],0,0]],"lesson-1-goal-card":[[[],0,0]],"lesson-1-think-card":[[["autoRotate","reset","transparent"],0,1]],"lesson-1-concept:0":[[[],0,0]],"lesson-1-concept:1":[[[],0,0]],"lesson-1-concept:2":[[["autoRotate","reset","transparent","면","모서리","꼭짓점","👀 모두 보기"],0,1],[["autoRotate","reset","transparent","면","모서리","꼭짓점","👀 모두 보기"],0,1],[["autoRotate","reset","transparent","면","모서리","꼭짓점","👀 모두 보기"],0,1],[["autoRotate","reset","transparent","면","모서리","꼭짓점","👀 모두 보기"],0,1]],"lesson-1-concept:3":[[["단면","다각형","autoRotate","reset","faceColor","transparent"],3,1],[["단면","다각형","autoRotate","reset","faceColor","transparent"],3,1],[["단면","다각형","autoRotate","reset","faceColor","transparent"],3,1]],"lesson-1-sim:0":[[["autoRotate","reset"],0,1]],"lesson-1-sim:1":[[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent","✂️ 자르기","📐 선택 활동: 기울여 자르기"],2,1]],"lesson-1-sim:2":[[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent"],1,1],[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent"],1,1],[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent"],1,1],[["개수 보기","autoRotate","reset","faceColor","edges","vertices","transparent"],1,1]],"lesson-1-sim:3":[[["autoRotate","reset","info","🔗 회전 동기화"],1,3]],"lesson-2-goal-card":[[[],0,0]],"lesson-2-think-card":[[["질문 1","질문 2","autoRotate","reset","transparent"],0,3]],"lesson-2-concept-card":[[[],0,0]],"lesson-2-sim:0":[[["autoRotate","reset","➕ 하나 더","🧩 다면체 완성"],0,1],[["autoRotate","reset","➕ 하나 더","🧩 다면체 완성"],0,1],[["autoRotate","reset","➕ 하나 더","🧩 다면체 완성"],0,1],[["autoRotate","reset","➕ 하나 더","🧩 다면체 완성"],0,1]],"lesson-2-sim:1":[[["autoRotate","reset","전개도 1","전개도 2","📂 펼치기","🎨 만나는 모서리 보기"],1,1],[["autoRotate","reset","전개도 1","전개도 2","전개도 3","📂 펼치기","🎨 만나는 모서리 보기"],1,1],[["autoRotate","reset","전개도 1","전개도 2","전개도 3","📂 펼치기","🎨 만나는 모서리 보기"],1,1],[["autoRotate","reset","전개도 1","전개도 2","전개도 3","📂 펼치기","🎨 만나는 모서리 보기"],1,1],[["autoRotate","reset","전개도 1","전개도 2","전개도 3","📂 펼치기","🎨 만나는 모서리 보기"],1,1]],"lesson-2-sim:2":[[["autoRotate","reset","transparent","면","모서리","꼭짓점"],0,2],[["autoRotate","reset","transparent","면","모서리","꼭짓점"],0,2],[["autoRotate","reset","transparent","면","모서리","꼭짓점"],0,2],[["autoRotate","reset","transparent","면","모서리","꼭짓점"],0,2],[["autoRotate","reset","transparent","면","모서리","꼭짓점"],0,2]],"lesson-3-goal-card":[[[],0,0]],"lesson-3-think-card":[[["autoRotate","reset","🐢 천천히 돌리기","🚀 빠르게 돌리기","📄 종이 돌리기","🔍 추론 1","🔍 추론 2"],0,1]],"lesson-3-concept-card":[[[],0,0]],"lesson-3-sim:0":[[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","변","직선 ℓ\\ellℓ"],2,1],[["autoRotate","reset","▶ 1회전","▶","도형 완성","변","직선 ℓ\\ellℓ"],1,1]],"lesson-3-sim:1":[[["autoRotate","reset","▶ 1회전"],0,2],[["autoRotate","reset","▶ 1회전"],0,2],[["autoRotate","reset","▶ 1회전"],0,2]],"lesson-3-sim:2":[[["autoRotate","reset","다음 문제 ▶"],0,1]],"lesson-3-sim:3":[[[],0,0],[["autoRotate","reset","transparent","✂️ 자르기","🔄 원뿔대 만드는 다른 방법"],1,1],[["autoRotate","reset","transparent","두 밑면","옆면","높이","모선"],0,1],[["autoRotate","reset","📂 펼치기"],4,1]],"lesson-3-sim:4":[[["autoRotate","reset","transparent","회전축에 수직 평면","회전축 포함 평면"],1,1],[["autoRotate","reset","transparent","회전축에 수직 평면","회전축 포함 평면"],1,1],[["autoRotate","reset","transparent","회전축에 수직 평면","회전축 포함 평면"],1,1],[["autoRotate","reset","transparent","회전축에 수직 평면","회전축 포함 평면"],1,1],[[],0,0],[[],0,0]],"lesson-4-goal-card":[[[],0,0]],"lesson-4-think-card":[[[],0,0]],"lesson-4-sim-card":[[[],0,0]],"lesson-5-goal-card":[[[],0,0]],"lesson-5-think-card":[[["✂️ 케이크 자르기"],0,0]],"lesson-5-sim-card:0":[[["autoRotate","reset","한 층씩 쌓기"],3,1]],"lesson-5-sim-card:1":[[["autoRotate","reset","✂️ 자르기","⚖️ 부피 비교","➕ 삼각기둥 부피식 한 줄씩 보기"],0,1]],"lesson-5-sim-card:2":[[["autoRotate","reset","🧲 합치기","✂️ 나누기"],1,1]],"lesson-5-sim-card:3":[[["autoRotate","reset","transparent"],1,1]],"lesson-5-sim-card:4":[[["autoRotate","reset","밑면 한 장씩 쌓기","밑면 연속 쌓기"],0,1],[["autoRotate","reset","밑면 한 장씩 쌓기","밑면 연속 쌓기"],0,1],[["autoRotate","reset","밑면 한 장씩 쌓기","밑면 연속 쌓기"],0,1],[["autoRotate","reset","밑면 한 장씩 쌓기","밑면 연속 쌓기"],0,1],[["autoRotate","reset","밑면 한 장씩 쌓기","밑면 연속 쌓기"],0,1]],"lesson-5-concept-card":[[[],0,0]],"lesson-6-goal-card":[[[],0,0]],"lesson-6-think-card":[[["autoRotate","reset"],0,1]],"lesson-6-sim:0":[[["autoRotate","reset","⏳ 뿔에 모래 채우기","🫗 기둥에 붓기"],2,1],[["autoRotate","reset","⏳ 뿔에 모래 채우기","🫗 기둥에 붓기"],2,1],[["autoRotate","reset","⏳ 뿔에 모래 채우기","🫗 기둥에 붓기"],2,1],[["autoRotate","reset","⏳ 뿔에 모래 채우기","🫗 기둥에 붓기"],2,1]],"lesson-6-sim:1":[[["autoRotate","reset","💥 분해","🧩 조립"],0,1]],"lesson-6-concept-card":[[[],0,0]],"lesson-6-cups-card":[[["autoRotate","reset"],0,1]],"lesson-7-goal-card":[[[],0,0]],"lesson-7-sim:0":[[["autoRotate","reset","📂 펼치기","🧮 포장지 넓이 계산하기"],1,1]],"lesson-7-sim:1":[[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1],[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1],[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1],[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1]],"lesson-7-sim:2":[[[],0,0]],"lesson-7-sim:3":[[[],0,0]],"lesson-7-sim:4":[[["reset","🎨 한 바퀴 굴리기"],1,1]],"lesson-7-simB:0":[[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1],[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1],[["autoRotate","reset","📂 펼치기","🧮 겉넓이 계산하기"],1,1]],"lesson-7-simB:1":[[["autoRotate","reset","📂 펼치기","🔄 굴리기"],3,1],[["autoRotate","reset","📂 펼치기","🔄 굴리기"],3,1]],"lesson-7-simB:2":[[[],0,0]],"lesson-7-simB:3":[[[],0,0]],"lesson-7-simB:4":[[[],0,0]],"lesson-7-simB:5":[[[],0,0]],"lesson-8-goal-card":[[[],0,0]],"lesson-8-think-card":[[["autoRotate","reset","🥣 반구에 모래 채워 붓기"],0,1]],"lesson-8-sim:0":[[[],0,0]],"lesson-8-sim:1":[[["autoRotate","reset","💧 원뿔 모양 그릇에 물 채워 붓기"],0,1],[["autoRotate","reset","💧 구 모양 그릇에 물 채워 붓기"],0,1],[["autoRotate","reset","⬇️ 구 넣기"],0,1]],"lesson-8-sim:2":[[["autoRotate","reset"],1,1],[["autoRotate","reset"],1,1]],"lesson-8-sim:3":[[["📜 아르키메데스 이야기 보기"],0,0]],"lesson-8-concept:0":[[[],0,0]],"lesson-8-concept:1":[[["다음 단계 ▶"],0,0]],"lesson-8-ex:0":[[[],0,0]],"lesson-8-ex:1":[[[],0,0]],"lesson-8-ex:2":[[[],0,0]],"lesson-8-ex:3":[[["autoRotate","reset"],0,1]]};
 /* 3D 화면 관찰 버튼(자동 회전·처음 위치로·면 이름·투명도·면 색칠·모서리/꼭짓점 강조·개수 보기·회전 동기화)은 탐색 기준에서 뺀다 */
@@ -14723,6 +14745,29 @@ const CLS_TOOL_NAME = { autoRotate:'🔄 자동 회전', reset:'🎯 처음 위�
 const CLS_EXTRA_DONE = { 'lesson-0-sim-card:2':['sort', '카드 10개를 모두 바르게 분류하기', 1], 'lesson-1-concept:1':['ox', '8개 도형의 다면체 O/X를 모두 맞히기', 1] };
 /* 활동마다 따로 정한 점수 기준 (기본 기준 대신) */
 const CLS_SCORE_CUSTOM = {
+  'lesson-2-think-card': (add, u) => {   // 정다면체 › 생각 열기 (3D 조작·확인 버튼 배점 없음)
+    add('(전체)', '탐색', '기능 버튼 2개(질문 1, 질문 2)를 모두 1번 이상 누르기', 1, f => ['질문 1', '질문 2'].every(x => f.btn(u, `-1:${x}`)) ? 1 : 0);
+    add('(공통)', '선택 문제', '선택 문제 3개에 모두 답하기', 1, f => f.groups(u) >= 3 ? 1 : 0);
+    add('(공통)', '활동 완료', CLS_TASK_TEXT[u.key], 1, f => f.done(u) ? 1 : 0);
+  },
+  'lesson-2-concept-card': (add, u) => {   // 정다면체 › 개념
+    add('(전체)', '탐색', '활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('개념 확인하기', '활동 완료', '[✏️ 개념 확인하기]를 눌러 단어 카드를 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
+    add('정다면체일까?', '선택 문제', '선택 문제 3개에 모두 답하고 [✓ 확인] 누르기', 1, f => f.flag(u, 'ox3') ? 1 : 0);
+    add('정다면체가 아닌 이유', '확인·제출', '정다면체가 아닌 이유를 모두 체크하고 [✓ 확인] 누르기', 1, f => f.flag(u, 'why') ? 1 : 0);
+  },
+  'lesson-2-sim:0': (add, u) => {   // 정다면체 (기록표)
+    add('찾은 정다면체', '활동 완료', '기록표에서 찾은 정다면체 1개마다 1점 (최대 5점)', 5, f => Math.min(5, f.flags(u, 'found:')));
+    add('모두 찾기 또는 5번 시도', '활동 완료', '정다면체 5개를 모두 찾거나, 기록표에 5번 이상 시도하기', 1, f => f.flags(u, 'found:') >= 5 || f.flags(u, 'try:') >= 5 ? 1 : 0);
+  },
+  'lesson-2-sim:1': (add, u, c) => {   // 정다면체 전개도: 5개 × (탐색·조작) 10칸, 칸마다 0.4점 = 4점
+    clsDetailLeaves(add, u, c, 0.4, new Set(['🎨 만나는 모서리 보기']));
+  },
+  'lesson-2-sim:2': (add, u, c) => {   // 정다면체 관찰: 탐색·조작 10칸 × 0.4점 = 4점 + 관찰 표 2점
+    clsDetailLeaves(add, u, c, 0.4);
+    add('관찰 표', '확인·제출', '[🔍 관찰 확인하기]를 누르고 [✓ 확인] 누르기 (빈칸을 다 채우지 못하면 1점, 모두 채우면 2점)', 2,
+      f => f.flag(u, 'fact:full') ? 2 : f.flag(u, 'fact:part') ? 1 : 0);
+  },
   'lesson-1-sim:0': (add, u) => {   // 각뿔대
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
     add('(공통)', '확인·제출', '[✏️ 개념 확인하기] 버튼 누르기', 1, f => f.checked(u, '✏️ 개념 확인하기') ? 1 : 0);
@@ -14771,21 +14816,7 @@ const CLS_SCORE_LEAVES = (() => { const out = [];
       });
       return;
     }
-    const dets = c.det && c.det.length ? c.det : [null];
-    dets.forEach((d, i) => {
-      const di = d == null ? -1 : i, dn = d == null ? '(전체)' : d, at = d ? `'${d}'에서 ` : '';
-      const F = (c.fx && c.fx[d == null ? 0 : i]) || { b:[], s:0, v:0 };
-      const pt = c.parts && c.parts[i];   // 0. 복습 › 3D 도형 갤러리: 구성 요소 버튼을 모두 눌러야 탐색 인정
-      if(pt){ const shapes = [...new Set(pt.map(x => x.split(':')[0]).filter(Boolean))];
-        add(dn, '탐색', `'${d}'${shapes.length > 1 ? `(${shapes.join('·')} 각각)` : ''}의 구성 요소 버튼 ${pt.length}개를 모두 눌러 보기`, 1, f => pt.every(x => f.part(u, `${i}:${x}`)) ? 1 : 0); }
-      else if(F.b.length)   // 기능 버튼을 모두 1번 이상 눌러야 탐색 인정
-        add(dn, '탐색', F.b.length === 1 ? `${at}기능 버튼 [${F.b[0]}] 누르기` : `${at}기능 버튼 ${F.b.length}개(${F.b.map(x => CLS_TOOL_NAME[x] || x.replace(/ℓ.*$/, 'ℓ')).join(', ')})를 모두 1번 이상 누르기`, 1, f => F.b.every(x => f.btn(u, `${di}:${x}`)) ? 1 : 0);
-      else add(dn, '탐색', d == null ? (u.short ? '소활동 열어서 살펴보기' : '활동 열어서 살펴보기') : `'${d}' 골라서 살펴보기`, 1, f => f.seen(u, di) ? 1 : 0);
-      if(F.s || F.v){        // 슬라이더·3D 화면을 모두 조작해야 조작 인정
-        const what = [F.s ? `슬라이더${F.s > 1 ? ` ${F.s}개` : ''}` : '', F.v ? `3D 화면${F.v > 1 ? ` ${F.v}개` : ''}` : ''].filter(Boolean).join('와 ');
-        add(dn, '조작', `${at}${what}를 모두 조작하기`, 1, f => f.sliders(u, di) >= F.s && f.views(u, di) >= F.v ? 1 : 0);
-      }
-    });
+    clsDetailLeaves(add, u, c);
     if(c.grp) add('(공통)', '선택 문제', `선택 문제 ${c.grp}개에 모두 답하기`, 1, f => f.groups(u) >= c.grp ? 1 : 0);
     if(c.inp) add('(공통)', '빈칸 입력', `빈칸 ${c.inp}개를 모두 채우기`, 1, f => f.filled(u) >= c.inp ? 1 : 0);
     (c.chk || []).forEach(lb => add('(공통)', '확인·제출', `[${lb}] 버튼 누르기`, 1, f => f.checked(u, lb) ? 1 : 0));
@@ -14827,7 +14858,8 @@ function clsScoreFacts(pg){
 function clsScoreCalc(pg){
   const f = clsScoreFacts(pg), got = CLS_SCORE_LEAVES.map(x => x.test(f));
   const cols = [], max = [], val = [], crit = [];
-  const sum = pred => { let a = 0, b = 0, lo = -1, hi = -1; CLS_SCORE_LEAVES.forEach((x, i) => { if(pred(x)){ a += got[i]; b += x.max; if(lo < 0) lo = i; hi = i + 1; } }); return [a, b, [Math.max(lo, 0), Math.max(hi, 0)]]; };
+  const r2 = x => Math.round(x * 100) / 100;   // 0.4점 같은 소수 배점의 합을 깔끔하게
+  const sum = pred => { let a = 0, b = 0, lo = -1, hi = -1; CLS_SCORE_LEAVES.forEach((x, i) => { if(pred(x)){ a += got[i]; b += x.max; if(lo < 0) lo = i; hi = i + 1; } }); return [r2(a), r2(b), [Math.max(lo, 0), Math.max(hi, 0)]]; };
   const push = (name, [a, b, range], c) => { cols.push(name); max.push(b); val.push(a); crit.push({ ...c, range }); };
   const T = sum(() => true);
   CLS_CATALOG.forEach(L => push(`[주제] ${L.title}`, sum(x => x.u.lesson === L.id), { level:'주제', lesson:L.title }));
@@ -14854,9 +14886,9 @@ function clsComposition(){
   const summary = [['주제', ...KINDS, '합계']];
   const tot = KINDS.map(() => 0);
   CLS_CATALOG.forEach(L => { const ls = CLS_SCORE_LEAVES.filter(x => x.u.lesson === L.id);
-    const v = KINDS.map((k, j) => { const n = ls.filter(x => x.kind === k).reduce((a, x) => a + x.max, 0); tot[j] += n; return n; });
-    summary.push([L.title, ...v, v.reduce((a, b) => a + b, 0)]); });
-  summary.push(['전체', ...tot, tot.reduce((a, b) => a + b, 0)]);
+    const v = KINDS.map((k, j) => { const n = Math.round(ls.filter(x => x.kind === k).reduce((a, x) => a + x.max, 0) * 100) / 100; tot[j] += n; return n; });
+    summary.push([L.title, ...v, Math.round(v.reduce((a, b) => a + b, 0) * 100) / 100]); });
+  summary.push(['전체', ...tot.map(x => Math.round(x * 100) / 100), Math.round(tot.reduce((a, b) => a + b, 0) * 100) / 100]);
   return { action:'composition', auth:clsPwHash(), head, rows, summary, widths:[48, 150, 140, 190, 170, 80, 300, 48, 280, 260] };
 }
 /** 0. 복습 › 개념: 도형 탭 열기(t)·개념 확인 마침(k) 기록 */
@@ -14864,7 +14896,8 @@ function clsComposition(){
 function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name); }catch(e){} }
 function clsWordHit(sec){ try{ const u = sec && clsUnitOf(sec); if(u) clsFlagHit(u.key, 'word'); }catch(e){} }
 /* 이 기기에 남은 단어 카드 완료 기록도 점수에 넣기 */
-setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word'); }, 3000);
+setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word');
+  if(safeStorage.get('ipche-l2-concept') === '1') clsFlagHit('lesson-2-concept-card', 'word'); }, 3000);
 function clsConceptHit(kind, i){ try{ if(isStudent()) clsActAdd('lesson-0-concept-card', kind, i); }catch(e){} }
 /* 이 기능 전에 마친 개념 확인도 점수에 넣기 (이 기기에 남은 기록) */
 setTimeout(() => { if(!isStudent()) return; try{ const v = JSON.parse(safeStorage.get(L0C_KEY) || '[]'); (Array.isArray(v) ? v : []).forEach((x, i) => x && clsConceptHit('k', i)); }catch(e){} }, 3000);

@@ -280,12 +280,12 @@ function saveScores_(d) {
   // 총점·주제·활동·소활동 합계는 세부활동 칸에서 다시 더함 (crit[j].range = 세부활동 칸 범위)
   const crit = d.crit || [], leafCols = [];
   cols.forEach(function (c, j) { if ((crit[j] || {}).level === '세부활동') leafCols.push(n0 + j); });
-  const maxTotal = leafCols.reduce(function (a, c) { return a + (Number(max[c - n0]) || 0); }, 0);
+  const maxTotal = Math.round(leafCols.reduce(function (a, c) { return a + (Number(max[c - n0]) || 0); }, 0) * 100) / 100;
   rows.forEach(function (row) {
-    const tot = leafCols.reduce(function (a, c) { return a + (Number(row[c]) || 0); }, 0);
+    const tot = Math.round(leafCols.reduce(function (a, c) { return a + (Number(row[c]) || 0); }, 0) * 100) / 100;
     row[3] = tot; row[4] = maxTotal; row[5] = maxTotal ? Math.round(tot / maxTotal * 1000) / 10 : '';
     cols.forEach(function (c, j) { const rg = (crit[j] || {}).range; if (!rg) return;
-      let a = 0; for (let k = rg[0]; k < rg[1]; k++) a += Number(row[leafCols[k]]) || 0; row[n0 + j] = a; });
+      let a = 0; for (let k = rg[0]; k < rg[1]; k++) a += Number(row[leafCols[k]]) || 0; row[n0 + j] = Math.round(a * 100) / 100; });
   });
   rows.sort(function (a, b) { return String(a[0]).replace(/^'/, '').localeCompare(String(b[0]).replace(/^'/, ''), 'ko', { numeric: true }) || String(a[1]).localeCompare(String(b[1]), 'ko'); });
   const maxRow = ['만점', '', '', maxTotal, maxTotal, 100].concat(max);
@@ -306,7 +306,7 @@ function fastScores_(sh, head, d) {
   for (let i = 0; i < head.length; i++) if (cur[i] !== head[i]) return false;
   const n0 = SCORE_FIXED.length, cols = d.cols, max = d.max || [], crit = d.crit || [];
   const leafCols = []; cols.forEach(function (c, j) { if ((crit[j] || {}).level === '세부활동') leafCols.push(n0 + j); });
-  const maxTotal = leafCols.reduce(function (a, c) { return a + (Number(max[c - n0]) || 0); }, 0);
+  const maxTotal = Math.round(leafCols.reduce(function (a, c) { return a + (Number(max[c - n0]) || 0); }, 0) * 100) / 100;
   const ids = lastR >= 3 ? sh.getRange(3, 1, lastR - 2, 2).getValues() : [];
   const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
   let added = false;
@@ -318,10 +318,10 @@ function fastScores_(sh, head, d) {
     else row = sh.getRange(r, 1, 1, head.length).getValues()[0];
     row[0] = "'" + sid; row[1] = nm; row[2] = now;
     (it.got || []).forEach(function (v, j) { const c = n0 + j; if ((crit[j] || {}).level === '세부활동') row[c] = Math.max(Number(row[c]) || 0, Number(v) || 0); });
-    const tot = leafCols.reduce(function (a, c) { return a + (Number(row[c]) || 0); }, 0);
+    const tot = Math.round(leafCols.reduce(function (a, c) { return a + (Number(row[c]) || 0); }, 0) * 100) / 100;
     row[3] = tot; row[4] = maxTotal; row[5] = maxTotal ? Math.round(tot / maxTotal * 1000) / 10 : '';
     cols.forEach(function (c, j) { const rg = (crit[j] || {}).range; if (!rg) return;
-      let a = 0; for (let k = rg[0]; k < rg[1]; k++) a += Number(row[leafCols[k]]) || 0; row[n0 + j] = a; });
+      let a = 0; for (let k = rg[0]; k < rg[1]; k++) a += Number(row[leafCols[k]]) || 0; row[n0 + j] = Math.round(a * 100) / 100; });
     sh.getRange(r, 1, 1, head.length).setValues([row]);
   });
   sh.getRange(2, 1, 1, head.length).setValues([['만점', '', '', maxTotal, maxTotal, 100].concat(max)]);
