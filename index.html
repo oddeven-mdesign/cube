@@ -1148,6 +1148,7 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 .l6-sopts .btn:disabled{opacity:.55}.l6-sopts .btn.ok:disabled{opacity:1}
 .l6-sfb{margin:8px 0 0;font-size:.92rem;line-height:1.38}.l6-sfb:empty{display:none}
 .l6-sfb .katex-display{margin:0}
+.l6-cup-btns .scratch-toggle{margin-right:auto}
 .l6-sfb.ok{color:#1B5E20}.l6-sfb.ng{color:#B71C1C}
 .l6-sdone{background:#FFFDE7;border-color:#FFD54F}
 .l6-sdone .l0-note{margin:0 0 8px}
@@ -10484,6 +10485,7 @@ async function l6SetupPour(wrap){
   function ui(){
     countEl.textContent = st.count;
     $('.l6-bars', wrap).hidden = !(st.count >= 3 && st.phase === 'idle');   // 기둥·뿔 부피 값은 모래 붓기를 마친 뒤에
+    if(st.count >= 3 && st.phase === 'idle') clsFlagHit('lesson-6-sim:1', 'full:' + ['tri', 'sq', 'pent', 'circ'].indexOf(st.kind));   // 활동 점수: 탐구 끝까지
     const busy = st.phase !== 'idle';
     btnFill.disabled = busy || st.pyrK > 0.99 || st.count >= 3;
     btnPour.disabled = busy || st.pyrK < 0.99 || st.count >= 3;
@@ -10637,7 +10639,7 @@ async function l6SetupCubeSplit(wrap){
 function l6SetupConcept(){
   const tb = document.getElementById('l6-think-box');
   if(tb){ const b = $('[data-a="reveal"]', tb), h = $('.l1-hint', tb);
-    b.addEventListener('click', () => { const on = !h.classList.contains('shown'); h.classList.toggle('shown', on); if(on) tb.dataset.seen = '1'; b.textContent = on ? '🙈 숨기기' : '✓ 확인'; }); }
+    b.addEventListener('click', () => { const on = !h.classList.contains('shown'); h.classList.toggle('shown', on); if(on){ tb.dataset.seen = '1'; clsFlagHit('lesson-6-concept-card', 'think'); } b.textContent = on ? '🙈 숨기기' : '✓ 확인'; }); }
   const box = document.querySelector('#lesson-6 .l6-examples'); if(!box) return;
   { const row = el('div', { class:'sim-row l8-pad-row' }); box.after(row); addScratchpad(row, { toggleIn:row }); }   // 예제 연습장
   const EX = [
@@ -10695,6 +10697,10 @@ async function l6AddCupsCard(){
     </div>`);
   after.after(card);
   const res = $('.l6-cups-res', card), chk = $('[data-a="check"]', card), cmsg = $('.l6-cup-msg', card);
+  // 연습장: [다시]·[부피 확인] 줄 왼쪽에. 키보드로 쓴 식에 네 잔의 부피(100π, 80π, 98π, 84π)가 모두 있으면 '정확하게 계산'
+  { const row = $('.l6-cup-btns', card); addScratchpad(row, { toggleIn:row, onText:t => {
+      const z = t.replace(/\s+/g, '').replace(/pi/gi, 'π');
+      if(CUPS.every(c => z.includes(`${c.vpi}π`))) clsFlagHit('lesson-6-cups-card', 'calc'); } }); }
   let pick = null;
   card.querySelectorAll('.l6-cup').forEach(b => b.addEventListener('click', () => {
     pick = b.dataset.id; card.querySelectorAll('.l6-cup').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.classList.remove('ok', 'ng'); });
@@ -13928,7 +13934,8 @@ function addScratchpad(quizBody, opts = {}){
     ctx.strokeStyle = st.color; ctx.lineWidth = st.tool === 'eraser' ? 22 : 2.6; ctx.lineCap = ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.moveTo(...st.last); ctx.lineTo(...p); ctx.stroke(); st.last = p;
   });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => cv.addEventListener(t, () => { st.drawing = false; }));
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => cv.addEventListener(t, () => { if(st.drawing) clsPadHit(wrap); st.drawing = false; }));
+  $('textarea', wrap).addEventListener('input', e => { if(e.target.value.trim()) clsPadHit(wrap, e.target.value); opts.onText && opts.onText(e.target.value); });   // 활동 점수: 연습장에 식 쓰기
   wrap.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => {
     const t = b.dataset.t;
     if(t === 'clear'){ ctx.clearRect(0, 0, cv.width, cv.height); $('textarea', wrap).value = ''; return; }
@@ -14902,7 +14909,29 @@ const CLS_SCORE_CUSTOM = {
   },
   'lesson-6-sim:0': (add, u, c) => {   // 뿔의 부피 › 도형 분할 (단계별 탐구)
     clsSubs(u, c, new Set(['🧩 조립'])).forEach(x => add(x.d, x.k, x.crit, 1, x.test));
-    add('단계별 탐구', '선택 문제', '이름·관계·부피 비교 질문 3개를 모두 맞혀 탐구 정리(식)까지 보기', 1, f => f.flag(u, 'done') ? 1 : 0);
+    add('단계별 탐구', '선택 문제', '이름·관계·부피 비교 질문 3개를 모두 맞혀 탐구 정리(식)까지 보기', 2, f => f.flag(u, 'done') ? 2 : 0);
+  },
+  'lesson-6-sim:1': (add, u, c) => {   // 뿔의 부피 › 모래 실험
+    const D = c.det || [], both = (f, i) => f.btn(u, `${i}:⏳ 뿔에 모래 채우기`) && f.btn(u, `${i}:🫗 기둥에 붓기`);
+    add('뿔 1개', '탐색', `${D.join('·')} 중 1개에서 [⏳ 뿔에 모래 채우기]와 [🫗 기둥에 붓기]를 모두 1번 이상 누르기`, 1, f => D.some((_, i) => both(f, i)) ? 1 : 0);
+    add('뿔 1개', '활동 완료', '그 뿔로 모래를 3번 부어 기둥을 가득 채우고 결과(1/3)와 부피 값까지 보기', 2, f => f.flags(u, 'full:') >= 1 ? 2 : 0);
+    add('뿔 2개 이상', '활동 완료', '탐구를 끝까지 마친 뿔이 2개 이상', 1, f => f.flags(u, 'full:') >= 2 ? 1 : 0);
+    add('(공통)', '조작', '3D 화면과 슬라이더 2개를 모두 조작하기', 1,
+      f => f.anyV(u) && new Set((f.raw(u, 's') || []).map(x => String(x).split(':')[1])).size >= 2 ? 1 : 0);
+  },
+  'lesson-6-concept-card': (add, u) => {   // 뿔의 부피 › 정리와 예제
+    add('생각 상자', '확인·제출', '생각 상자의 [✓ 확인] 누르기', 1, f => f.flag(u, 'think') ? 1 : 0);
+    [['사각뿔 문제', 0], ['원뿔 문제', 1]].forEach(([nm, i]) => {
+      add(nm, '빈칸 입력', '빈칸 2개를 모두 입력하고 [📤 제출] 누르기', 1, f => f.flag(u, `ex${i}:sub`) ? 1 : 0);
+      add(nm, '확인·제출', '제출한 답이 모두 정답', 1, f => f.flag(u, `ex${i}:ok`) ? 1 : 0);
+    });
+    add('풀이 보기', '확인·제출', '[📖 풀이 보기] 버튼 2개를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+  },
+  'lesson-6-cups-card': (add, u) => {   // 뿔의 부피 › 생각이 크는 수학
+    add('잔 고르기', '선택 문제', '3D 화면을 조작하고 잔(선택지) 고르기', 1, f => f.anyV(u) && f.groups(u) >= 1 ? 1 : 0);
+    add('부피 확인', '확인·제출', '[🥤 부피 확인] 누르기', 1, f => f.checked(u, '🥤 부피 확인') ? 1 : 0);
+    add('연습장', '활동 완료', '연습장을 열어 계산식을 쓰면 1점, 네 잔의 부피(100π, 80π, 98π, 84π)를 정확하게 계산해 쓰면 2점', 2,
+      f => f.flag(u, 'calc') ? 2 : f.flag(u, 'pad') ? 1 : 0);
   },
   'lesson-6-think-card': (add, u) => {   // 뿔의 부피 › 생각 열기
     add('(전체)', '탐색', '활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
@@ -14982,6 +15011,7 @@ function clsScoreFacts(pg){
     flag: (u, nm) => has(act[u.key + '|f'], nm),
     flags: (u, pre) => (act[u.key + '|f'] || []).filter(x => String(x).startsWith(pre)).length,
     anyS: u => (act[u.key + '|s'] || []).length > 0,
+    raw: (u, k) => act[u.key + '|' + k],
     anyV: u => (act[u.key + '|v3'] || []).length > 0,
     btn: (u, id) => has(act[u.key + '|b'], id),
     sliders: (u, i) => new Set((act[u.key + '|s'] || []).map(String).filter(x => x.split(':')[0] === String(i))).size,
@@ -15037,6 +15067,7 @@ function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name)
 /** 예제 상자(l7Rows) 기록: 소활동 안에서 몇 번째 예제인지와 함께 (sub 제출 · ok 정답 · sol 풀이 보기) */
 function clsExHit(box, kind){ try{ const u = clsUnitOf(box); if(!u) return; const i = [...u.root.querySelectorAll('.l7-rows')].indexOf(box);
   if(kind === 'ok') clsFlagHit(u.key, `ex${i}:sub`); clsFlagHit(u.key, `ex${i}:${kind}`); }catch(e){} }
+function clsPadHit(wrap){ try{ const u = wrap && clsUnitOf(wrap); if(u) clsFlagHit(u.key, 'pad'); }catch(e){} }
 function clsWordHit(sec){ try{ const u = sec && clsUnitOf(sec); if(u) clsFlagHit(u.key, 'word'); }catch(e){} }
 /* 이 기기에 남은 단어 카드 완료 기록도 점수에 넣기 */
 setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word');
