@@ -14996,6 +14996,14 @@ const CLS_SCORE_CUSTOM = {
     add('도형 2개 이상', '활동 완료', '①~⑤를 모두 마친 도형이 2개 이상', 1, f => full(f) >= 2 ? 1 : 0);
     add('모든 도형', '활동 완료', `①~⑤를 모두 마친 도형이 ${D.length}개 모두`, 1, f => full(f) >= D.length ? 1 : 0);
   },
+  'lesson-7-simB:0': (add, u, c) => {   // 뿔 겉넓이 › 시뮬레이션: 각뿔
+    const D = c.det || [];
+    const parts = (f, i) => [f.sliders(u, i) >= 1 && f.views(u, i) >= 1 && f.btn(u, `${i}:📂 펼치기`), f.flag(u, 'size:' + D[i]), f.flag(u, 'fill:' + D[i]), f.flag(u, 'ok:' + D[i]), f.flag(u, 'lab:' + D[i])];
+    const best = f => Math.max(0, ...D.map((_, i) => parts(f, i).filter(Boolean).length));
+    const full = f => D.filter((_, i) => parts(f, i).every(Boolean)).length;
+    add('도형 1개', '활동 완료', `${D.join('·')} 중 한 도형에서 ①3D 화면·슬라이더·[📂 펼치기] 조작 ②도형의 크기 바꾸기 ③[🧮 겉넓이 계산하기]를 눌러 빈칸 모두 채우기 ④빈칸 모두 정답 ⑤펼친 3D 화면에서 모든 면의 넓이 라벨 보기 — 1가지마다 1점`, 5, f => best(f));
+    add('도형 2개 이상', '활동 완료', '①~⑤를 모두 마친 도형이 2개 이상', 1, f => full(f) >= 2 ? 1 : 0);
+  },
   'lesson-7-sim:2': (add, u) => {   // 기둥의 겉넓이 (개념)
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
     add('(공통)', '활동 완료', '[✏️ 개념 확인하기]를 눌러 빈칸(단어 카드)을 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
