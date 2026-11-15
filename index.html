@@ -10697,10 +10697,8 @@ async function l6AddCupsCard(){
     </div>`);
   after.after(card);
   const res = $('.l6-cups-res', card), chk = $('[data-a="check"]', card), cmsg = $('.l6-cup-msg', card);
-  // 연습장: [다시]·[부피 확인] 줄 왼쪽에. 키보드로 쓴 식에 네 잔의 부피(100π, 80π, 98π, 84π)가 모두 있으면 '정확하게 계산'
-  { const row = $('.l6-cup-btns', card); addScratchpad(row, { toggleIn:row, onText:t => {
-      const z = t.replace(/\s+/g, '').replace(/pi/gi, 'π');
-      if(CUPS.every(c => z.includes(`${c.vpi}π`))) clsFlagHit('lesson-6-cups-card', 'calc'); } }); }
+  // 연습장: [다시]·[부피 확인] 줄 왼쪽에 (쓰면 활동 점수 1점)
+  { const row = $('.l6-cup-btns', card); addScratchpad(row, { toggleIn:row }); }
   let pick = null;
   card.querySelectorAll('.l6-cup').forEach(b => b.addEventListener('click', () => {
     pick = b.dataset.id; card.querySelectorAll('.l6-cup').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.classList.remove('ok', 'ng'); });
@@ -14930,8 +14928,7 @@ const CLS_SCORE_CUSTOM = {
   'lesson-6-cups-card': (add, u) => {   // 뿔의 부피 › 생각이 크는 수학
     add('잔 고르기', '선택 문제', '3D 화면을 조작하고 잔(선택지) 고르기', 1, f => f.anyV(u) && f.groups(u) >= 1 ? 1 : 0);
     add('부피 확인', '확인·제출', '[🥤 부피 확인] 누르기', 1, f => f.checked(u, '🥤 부피 확인') ? 1 : 0);
-    add('연습장', '활동 완료', '연습장을 열어 계산식을 쓰면 1점, 네 잔의 부피(100π, 80π, 98π, 84π)를 정확하게 계산해 쓰면 2점', 2,
-      f => f.flag(u, 'calc') ? 2 : f.flag(u, 'pad') ? 1 : 0);
+    add('연습장', '활동 완료', '연습장을 열어 계산식 쓰기 (손글씨 또는 키보드)', 1, f => f.flag(u, 'pad') ? 1 : 0);
   },
   'lesson-6-think-card': (add, u) => {   // 뿔의 부피 › 생각 열기
     add('(전체)', '탐색', '활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
