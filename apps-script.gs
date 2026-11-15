@@ -7,6 +7,8 @@
  *   2) 누적 데이터 : 학번·이름마다 한 줄. 이번에 보낸 데이터와 지금까지의 기록을 비교해 가장 높은 값으로 갱신
  *                    → 학생마다 한 줄만 있음 (이미 만들어 둔 빈 탭을 그대로 사용, 첫 줄 제목은 자동으로 채움)
  *   3) 수업설정    : 관리자가 [수업 관리]에서 저장한 잠금·통제 설정 (학생 화면이 10초마다 읽어 감)
+ *   4) 활동 점수    : 학번·이름마다 한 줄. 주제 › 활동 › 소활동 › 세부활동별 점수 (2번째 줄 = 만점)
+ *   5) 활동 점수 기준 : 점수 칸마다 활동 종류·완료 기준·배점 (웹앱이 보내 준 기준표로 자동 작성)
  *   ※ 모니터링     : 학생 화면이 '지금 하는 소활동·마친 소활동'을 알려 오면 캐시에 잠시(6시간) 보관 → 관리자 [📊 모니터링]이 읽어 감
  *                    (시트에 쓰지 않으므로 빠르고, 기록 저장과 서로 기다리지 않음)
  *
@@ -25,6 +27,9 @@
 const SHEET_LOG = '활동 데이터';    // 전송된 데이터를 그대로 한 줄씩 쌓음 (같은 학생이 여러 줄)
 const SHEET_BEST = '누적 데이터';   // 학번·이름마다 한 줄, 가장 높은 값으로 계속 갱신
 const SHEET_CFG = '수업설정';
+const SHEET_SCORE = '활동 점수';
+const SHEET_SCORE_STD = '활동 점수 기준';
+const SCORE_FIXED = ['학번', '이름', '갱신 시각', '총점', '만점', '달성률(%)'];
 const DEFAULT_PW_HASH = '445cf6a7';   // 처음 비밀번호(1234)를 웹앱과 같은 방식으로 바꾼 값 — 아래 hashPw_('1234')와 같다
 
 // 용어: 주제(0. 복습 ~ 8. 구의 부피와 겉넓이) › 활동(학습 목표, 생각 열기 …) › 소활동 › 세부활동
@@ -44,6 +49,7 @@ function doPost(e) {
     const data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (data.action === 'record') return json_(saveRecord_(data));
     if (data.action === 'config') return json_(saveConfig_(data));
+    if (data.action === 'scores') return json_(saveScores_(data));
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -58,6 +64,7 @@ function doGet(e) {
   if (action === 'config') return json_({ ok: true, config: readConfig_() });
   if (action === 'restore') return json_(restore_(e.parameter.sid, e.parameter.name));
   if (action === 'monitor') return json_(readMonitor_(e.parameter.auth));
+  if (action === 'allProgress') return json_(allProgress_(e.parameter.auth));
   return json_({ ok: true, message: '입체도형 학습 기록 수집 중' });
 }
 
@@ -195,7 +202,7 @@ function restore_(sid, name) {
 }
 function mergeProgress_(a, b) {
   if (!a) return b; if (!b) return a;
-  const out = { completed: {}, scores: {}, steps: {}, seen: {}, subtabs: {}, results: {}, detail: {} };
+  const out = { completed: {}, scores: {}, steps: {}, seen: {}, subtabs: {}, results: {}, detail: {}, act: {} };
   [a.completed, b.completed].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { if (o[k]) out.completed[k] = true; }); });
   [a.scores, b.scores].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
     const v = o[k] || {}, c = out.scores[k];
@@ -205,7 +212,7 @@ function mergeProgress_(a, b) {
     const v = o[k] || {}, c = out.steps[k];
     out.steps[k] = !c ? { cur: v.cur || 0, reached: v.reached || 0 } : { cur: v.cur || 0, reached: Math.max(c.reached || 0, v.reached || 0) };
   }); });
-  ['seen', 'subtabs', 'detail'].forEach(function (f) { [a[f], b[f]].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
+  ['seen', 'subtabs', 'detail', 'act'].forEach(function (f) { [a[f], b[f]].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
     const s = {}; (out[f][k] || []).concat(o[k] || []).forEach(function (x) { s[x] = 1; }); out[f][k] = Object.keys(s);
   }); }); });
   [a.results, b.results].forEach(function (o) { Object.keys(o || {}).forEach(function (k) {
@@ -236,6 +243,115 @@ function readConfigSheet_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CFG);
   if (!sh || sh.getLastRow() < 2) return null;
   try { return JSON.parse(sh.getRange(2, 1).getValue()); } catch (err) { return null; }
+}
+
+/* ---------- 4) 활동 점수 ---------- */
+/** 웹앱이 계산해 보낸 점수 쓰기: { cols, max, maxTotal, crit, items:[{ sid, name, total, got }] } — 칸 점수는 내려가지 않음(가장 높은 값 유지) */
+function saveScores_(d) {
+  const cols = d.cols || [], max = d.max || [];
+  if (!cols.length || !(d.items || []).length) return { ok: false, error: 'no scores' };
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const head = SCORE_FIXED.concat(cols);
+  const sh = sheet_(ss, SHEET_SCORE, head);
+  if ((d.items || []).length <= 3 && fastScores_(sh, head, d)) { writeScoreStd_(ss, cols, max, d.crit || []); return { ok: true, fast: true }; }
+  // 지금 표 읽기 (열 이름으로 맞춰 옮겨 담기 → 활동 구성이 바뀌어도 예전 값이 섞이지 않음)
+  const lastR = sh.getLastRow(), lastC = Math.max(sh.getLastColumn(), 1);
+  const old = lastR >= 1 ? sh.getRange(1, 1, lastR, lastC).getValues() : [[]];
+  const oh = (old[0] || []).map(String), pos = {}; oh.forEach(function (h, i) { pos[h] = i; });
+  const idx = {}, rows = [];
+  for (let r = 2; r < old.length; r++) {      // 1번째 줄 = 제목, 2번째 줄 = 만점
+    const o = old[r]; const sid = String(o[pos['학번']] || '').replace(/^'/, ''), nm = String(o[pos['이름']] || '').trim();
+    if (!sid && !nm) continue;
+    const row = head.map(function (h) { return pos[h] != null ? o[pos[h]] : ''; });
+    idx[sid + '|' + nm] = rows.length; rows.push(row);
+  }
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  const n0 = SCORE_FIXED.length;
+  (d.items || []).forEach(function (it) {
+    const sid = String(it.sid || '').trim(), nm = String(it.name || '').trim(); if (!sid) return;
+    let i = idx[sid + '|' + nm]; if (i == null) { i = rows.length; idx[sid + '|' + nm] = i; rows.push(head.map(function () { return ''; })); }
+    const row = rows[i]; row[0] = "'" + sid; row[1] = nm; row[2] = now;
+    (it.got || []).forEach(function (v, j) { const c = n0 + j; if (((d.crit || [])[j] || {}).level === '세부활동') row[c] = Math.max(Number(row[c]) || 0, Number(v) || 0); });
+  });
+  // 총점·주제·활동·소활동 합계는 세부활동 칸에서 다시 더함 (crit[j].range = 세부활동 칸 범위)
+  const crit = d.crit || [], leafCols = [];
+  cols.forEach(function (c, j) { if ((crit[j] || {}).level === '세부활동') leafCols.push(n0 + j); });
+  const maxTotal = leafCols.reduce(function (a, c) { return a + (Number(max[c - n0]) || 0); }, 0);
+  rows.forEach(function (row) {
+    const tot = leafCols.reduce(function (a, c) { return a + (Number(row[c]) || 0); }, 0);
+    row[3] = tot; row[4] = maxTotal; row[5] = maxTotal ? Math.round(tot / maxTotal * 1000) / 10 : '';
+    cols.forEach(function (c, j) { const rg = (crit[j] || {}).range; if (!rg) return;
+      let a = 0; for (let k = rg[0]; k < rg[1]; k++) a += Number(row[leafCols[k]]) || 0; row[n0 + j] = a; });
+  });
+  rows.sort(function (a, b) { return String(a[0]).replace(/^'/, '').localeCompare(String(b[0]).replace(/^'/, ''), 'ko', { numeric: true }) || String(a[1]).localeCompare(String(b[1]), 'ko'); });
+  const maxRow = ['만점', '', '', maxTotal, maxTotal, 100].concat(max);
+  sh.clearContents();
+  const all = [head, maxRow].concat(rows);
+  sh.getRange(1, 1, all.length, head.length).setValues(all);
+  sh.getRange(1, 1, 1, head.length).setFontWeight('bold').setBackground('#FFF3E0').setWrap(true);
+  sh.getRange(2, 1, 1, head.length).setFontWeight('bold').setBackground('#F5F5F5');
+  sh.setFrozenRows(2); sh.setFrozenColumns(2);
+  if (lastC > head.length) sh.getRange(1, head.length + 1, Math.max(lastR, all.length), lastC - head.length).clearContent();
+  writeScoreStd_(ss, cols, max, d.crit || []);
+  return { ok: true, students: rows.length };
+}
+/** 학생 한두 명 갱신: 제목 줄이 같으면 그 학생 줄만 고쳐 씀 (빠름) */
+function fastScores_(sh, head, d) {
+  const lastR = sh.getLastRow(); if (lastR < 2 || sh.getLastColumn() !== head.length) return false;
+  const cur = sh.getRange(1, 1, 1, head.length).getValues()[0].map(String);
+  for (let i = 0; i < head.length; i++) if (cur[i] !== head[i]) return false;
+  const n0 = SCORE_FIXED.length, cols = d.cols, max = d.max || [], crit = d.crit || [];
+  const leafCols = []; cols.forEach(function (c, j) { if ((crit[j] || {}).level === '세부활동') leafCols.push(n0 + j); });
+  const maxTotal = leafCols.reduce(function (a, c) { return a + (Number(max[c - n0]) || 0); }, 0);
+  const ids = lastR >= 3 ? sh.getRange(3, 1, lastR - 2, 2).getValues() : [];
+  const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  let added = false;
+  d.items.forEach(function (it) {
+    const sid = String(it.sid || '').trim(), nm = String(it.name || '').trim(); if (!sid) return;
+    let r = -1; for (let i = 0; i < ids.length; i++) if (String(ids[i][0]).replace(/^'/, '') === sid && String(ids[i][1]).trim() === nm) { r = i + 3; break; }
+    let row;
+    if (r < 0) { r = sh.getLastRow() + 1; row = head.map(function () { return ''; }); added = true; ids.push(["'" + sid, nm]); }
+    else row = sh.getRange(r, 1, 1, head.length).getValues()[0];
+    row[0] = "'" + sid; row[1] = nm; row[2] = now;
+    (it.got || []).forEach(function (v, j) { const c = n0 + j; if ((crit[j] || {}).level === '세부활동') row[c] = Math.max(Number(row[c]) || 0, Number(v) || 0); });
+    const tot = leafCols.reduce(function (a, c) { return a + (Number(row[c]) || 0); }, 0);
+    row[3] = tot; row[4] = maxTotal; row[5] = maxTotal ? Math.round(tot / maxTotal * 1000) / 10 : '';
+    cols.forEach(function (c, j) { const rg = (crit[j] || {}).range; if (!rg) return;
+      let a = 0; for (let k = rg[0]; k < rg[1]; k++) a += Number(row[leafCols[k]]) || 0; row[n0 + j] = a; });
+    sh.getRange(r, 1, 1, head.length).setValues([row]);
+  });
+  sh.getRange(2, 1, 1, head.length).setValues([['만점', '', '', maxTotal, maxTotal, 100].concat(max)]);
+  if (added && sh.getLastRow() > 3) sh.getRange(3, 1, sh.getLastRow() - 2, head.length).sort([{ column: 1, ascending: true }, { column: 2, ascending: true }]);
+  return true;
+}
+/** 활동 점수 기준 탭 (기준이 바뀌었을 때만 다시 씀) */
+function writeScoreStd_(ss, cols, max, crit) {
+  const sig = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify([cols, max])));
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('scoreStdSig') === sig && ss.getSheetByName(SHEET_SCORE_STD)) return;
+  const head = ['열 이름', '단계', '주제', '활동', '소활동', '세부활동', '활동 종류', '완료 기준', '배점(만점)'];
+  const sh = sheet_(ss, SHEET_SCORE_STD, head);
+  const rows = cols.map(function (c, i) { const k = crit[i] || {};
+    return [c, k.level || '', k.lesson || '', k.step || '', k.sub || '', k.det || '', k.kind || (k.level ? k.level + ' 합계' : ''), k.crit || (k.level && k.level !== '세부활동' ? '아래 세부활동 점수의 합' : ''), max[i]]; });
+  sh.clearContents();
+  sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#FFF3E0');
+  if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
+  sh.setFrozenRows(1);
+  props.setProperty('scoreStdSig', sig);
+}
+/** 관리자 '활동 점수 다시 계산'용: 학생마다 이어하기 데이터 */
+function allProgress_(auth) {
+  if (!monAuth_(auth)) return { ok: false, error: '관리자 비밀번호가 맞지 않아요. 다시 로그인해 주세요.' };
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_BEST);
+  if (!sh || sh.getLastRow() < 2) return { ok: true, students: [] };
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues();
+  const iS = head.indexOf('학번'), iN = head.indexOf('이름'), iP = head.indexOf('이어하기 데이터(JSON)');
+  const out = [];
+  rows.forEach(function (r) { const sid = String(r[iS]).replace(/^'/, '').trim(); if (!sid) return;
+    let pg = null; try { pg = JSON.parse(r[iP] || 'null'); } catch (err) {}
+    out.push({ sid: sid, name: String(r[iN]).trim(), progress: pg }); });
+  return { ok: true, students: out };
 }
 
 /* ---------- 모니터링 ---------- */

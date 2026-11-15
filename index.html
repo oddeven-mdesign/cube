@@ -14108,12 +14108,12 @@ $('#resetBtn').addEventListener('click', () => {
    · 수업 설정은 구글 시트(앱스 스크립트)에 저장되고, 학생 화면이 10초마다 받아 와서 적용한다.
    ===================================================================== */
 const SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzlo0L-pQbEisIAsgx_Ae825S5CVU9swyIhnZdu3KGCG37TxznglbLG5U4kTjBtU7Hccg/exec';   // ← 앱스 스크립트 '웹 앱' 주소를 붙여 넣으세요 (https://script.google.com/macros/s/…/exec)
-const CLS_KEY = { user:'ipche-user', session:'ipche-session', cfg:'ipche-class-config', url:'ipche-sheet-url', results:'ipche-results', queue:'ipche-send-queue', seen:'ipche-subseen', detail:'ipche-detail' };
+const CLS_KEY = { user:'ipche-user', session:'ipche-session', cfg:'ipche-class-config', url:'ipche-sheet-url', results:'ipche-results', queue:'ipche-send-queue', seen:'ipche-subseen', detail:'ipche-detail', act:'ipche-act' };
 const CLS_KEEP = [CLS_KEY.user, CLS_KEY.cfg, CLS_KEY.url, CLS_KEY.queue];   // 학번을 바꿔도 지우지 않는 값
 const CLS_CATALOG = [{"id": "lesson-0", "title": "0. 복습(초등수학)", "steps": [{"card": "lesson-0-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-0-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-0-concept-card", "label": "개념", "subs": []}, {"card": "lesson-0-sim-card", "label": "시뮬레이션", "subs": [{"host": "lesson-0-sim-card", "items": ["3D 도형 갤러리", "전개도 펼치기", "분류 활동: 기둥·뿔·구"]}]}, {"card": "lesson-0-quiz-card", "label": "확인 퀴즈", "subs": []}, {"card": "lesson-0-preview-card", "label": "중학교 미리보기", "subs": []}]}, {"id": "lesson-1", "title": "1. 다면체와 각뿔대", "steps": [{"card": "lesson-1-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-1-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-1-concept-card", "label": "개념", "subs": [{"host": "lesson-1-concept", "items": ["다면체", "다면체 판별", "다면체 탐색", "다면체 단면 관찰"]}]}, {"card": "lesson-1-sim-card", "label": "시뮬레이션", "subs": [{"host": "lesson-1-sim", "items": ["각뿔대", "각뿔대 만들기", "각뿔대 탐색", "비교 관찰"]}]}, {"card": "lesson-1-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-2", "title": "2. 정다면체", "steps": [{"card": "lesson-2-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-2-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-2-concept-card", "label": "개념", "subs": []}, {"card": "lesson-2-sim-card", "label": "시뮬레이션", "subs": [{"host": "lesson-2-sim", "items": ["정다면체", "정다면체 전개도", "정다면체 관찰"]}]}, {"card": "lesson-2-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-3", "title": "3. 회전체", "steps": [{"card": "lesson-3-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-3-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-3-concept-card", "label": "개념", "subs": []}, {"card": "lesson-3-sim-card", "label": "시뮬레이션", "subs": [{"host": "lesson-3-sim", "items": ["회전체", "회전축 비교", "회전체 추론", "원뿔대", "회전체의 단면"]}]}, {"card": "lesson-3-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-4", "title": "4. 낱말 퍼즐 놀이", "steps": [{"card": "lesson-4-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-4-think-card", "label": "놀이 안내", "subs": []}, {"card": "lesson-4-sim-card", "label": "가로세로 낱말 퍼즐", "subs": []}, {"card": "lesson-4-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-5", "title": "5. 기둥의 부피", "steps": [{"card": "lesson-5-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-5-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-5-sim-card", "label": "기둥 부피 탐구", "subs": [{"host": "lesson-5-sim-card", "items": ["직육면체", "삼각기둥", "각기둥", "원기둥", "기둥 부피"]}]}, {"card": "lesson-5-concept-card", "label": "정리와 예제", "subs": []}, {"card": "lesson-5-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-6", "title": "6. 뿔의 부피", "steps": [{"card": "lesson-6-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-6-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-6-sim-card", "label": "시뮬레이션", "subs": [{"host": "lesson-6-sim", "items": ["모래 실험", "도형 분할"]}]}, {"card": "lesson-6-concept-card", "label": "정리와 예제", "subs": []}, {"card": "lesson-6-cups-card", "label": "생각이 크는 수학", "subs": []}, {"card": "lesson-6-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-7", "title": "7. 기둥과 뿔의 겉넓이", "steps": [{"card": "lesson-7-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-7-sim-card", "label": "기둥 겉넓이", "subs": [{"host": "lesson-7-sim", "items": ["생각 열기 상자 포장지", "시뮬레이션 기둥 전개도", "기둥의 겉넓이", "겉넓이 계산", "생활 문제 해결"]}]}, {"card": "lesson-7-simB-card", "label": "뿔 겉넓이", "subs": [{"host": "lesson-7-simB", "items": ["시뮬레이션 각뿔", "시뮬레이션 원뿔", "뿔의 겉넓이", "겉넓이 계산", "생활 문제 해결", "도전 문제"]}]}, {"card": "lesson-7-quiz-card", "label": "확인 퀴즈", "subs": []}]}, {"id": "lesson-8", "title": "8. 구의 부피와 겉넓이", "steps": [{"card": "lesson-8-goal-card", "label": "학습 목표", "subs": []}, {"card": "lesson-8-think-card", "label": "생각 열기", "subs": []}, {"card": "lesson-8-sim-card", "label": "구 부피 탐구", "subs": [{"host": "lesson-8-sim", "items": ["실험 영상", "물 붓기 실험", "원기둥·원뿔·구", "생각이 크는 수학 아르키메데스"]}]}, {"card": "lesson-8-concept-card", "label": "구 겉넓이 탐구", "subs": [{"host": "lesson-8-concept", "items": ["실험 영상", "시뮬레이션"]}]}, {"card": "lesson-8-ex-card", "label": "정리와 활용", "subs": [{"host": "lesson-8-ex", "items": ["구의 부피", "구의 겉넓이", "예제", "생활 문제 해결"]}]}, {"card": "lesson-8-quiz-card", "label": "확인 퀴즈", "subs": []}]}];
 const CLS_LOCK_TEXT = { auto:'자동(순서대로)', open:'열림', lock:'잠김' };
 
-const cls = { role:null, mode:null, user:null, enter:{}, results:{}, seen:{}, detail:{},
+const cls = { role:null, mode:null, user:null, enter:{}, results:{}, seen:{}, detail:{}, act:{},
   cfg:{ locks:{}, buttons:{ answer:true, hint:true, pad:true }, pause:false, pwHash:null, updatedAt:0 } };
 
 /* --- 저장 도우미 (sessionStorage는 탭을 닫으면 사라짐: 새로 열면 첫 화면이 다시 나온다) --- */
@@ -14340,7 +14340,7 @@ function clsNames(key){
 }
 /** 보낼 때마다 모든 소활동 이름을 지금 기준으로 다시 붙인 학습 데이터 */
 function clsSnapshot(){ const o = {}; Object.entries(cls.results).forEach(([k, r]) => { o[k] = { ...r, ...clsNames(k), key:k }; }); return o; }
-function clsEnter(key){ cls.enter[key] = Date.now(); clsStatusSoon(); }
+function clsEnter(key){ cls.enter[key] = Date.now(); clsActAdd(key, 'v', 1); clsStatusSoon(); }
 /** 소활동을 마치고 다른 소활동·단계로 넘어갈 때: 결과 저장 + 구글 시트로 전송 */
 function clsReport(key, root, extra){
   if(!isStudent() || !key) return;
@@ -14354,18 +14354,18 @@ function clsReport(key, root, extra){
   cls.results[key] = rec; jset(CLS_KEY.results, cls.results);
   clsSend({ action:'record', sid:cls.user.sid, name:cls.user.name, sentAt:rec.at, item:rec,
     completedLessons:LESSONS.filter((_, i) => isCompleted(i)).length, snapshot:clsSnapshot(), quiz:state.scores, progress:clsProgress() });
-  clsStatusSoon();
+  clsStatusSoon(); clsScoreSoon();
 }
 /** 이어서 하기용 진행 상태 (구글 시트에 함께 저장 → 같은 학번·이름으로 다시 들어오면 불러옴) */
 function clsProgress(){
   let sub = {}; try{ sub = JSON.parse(safeStorage.get(SUBTAB_KEY) || '{}') || {}; }catch(e){}
-  return { completed:state.completed, scores:state.scores, steps:state.steps, seen:cls.seen, subtabs:sub, results:cls.results, detail:cls.detail };
+  return { completed:state.completed, scores:state.scores, steps:state.steps, seen:cls.seen, subtabs:sub, results:cls.results, detail:cls.detail, act:cls.act };
 }
 function clsApplyProgress(pg){
   if(!pg || typeof pg !== 'object') return false;
   safeStorage.set(STORAGE_KEY, JSON.stringify({ completed:pg.completed || {}, scores:pg.scores || {}, steps:pg.steps || {}, savedAt:Date.now() }));
   safeStorage.set(SUBTAB_KEY, JSON.stringify(pg.subtabs || {}));
-  jset(CLS_KEY.seen, pg.seen || {}); jset(CLS_KEY.results, pg.results || {}); jset(CLS_KEY.detail, pg.detail || {});
+  jset(CLS_KEY.seen, pg.seen || {}); jset(CLS_KEY.results, pg.results || {}); jset(CLS_KEY.detail, pg.detail || {}); jset(CLS_KEY.act, pg.act || {});
   return true;
 }
 /** 구글 시트에서 같은 학번·이름의 이전 기록 불러오기 */
@@ -14527,8 +14527,8 @@ function clsModal(html, cls2=''){
 function clsClearRecords(){
   state.completed = {}; state.scores = {}; state.steps = {}; cls.results = {}; cls.seen = {};
   try{ Object.keys(window.localStorage).filter(k => k.startsWith('ipche') && !CLS_KEEP.includes(k)).forEach(k => window.localStorage.removeItem(k)); }catch(e){}
-  cls.detail = {};
-  [STORAGE_KEY, SUBTAB_KEY, CLS_KEY.results, CLS_KEY.seen, CLS_KEY.detail].forEach(k => safeStorage.remove(k));
+  cls.detail = {}; cls.act = {};
+  [STORAGE_KEY, SUBTAB_KEY, CLS_KEY.results, CLS_KEY.seen, CLS_KEY.detail, CLS_KEY.act].forEach(k => safeStorage.remove(k));
 }
 function clsWarn(msg, onOk, okLabel='기록 지우고 계속'){
   const m = clsModal(`<h3>⚠️ 확인해 주세요</h3><p class="cls-warn">${msg}</p>
@@ -14700,6 +14700,127 @@ async function clsOpenAdmin(){
   });
 }
 
+
+/* =====================================================================
+   활동 점수: 주제 › 활동 › 소활동 › 세부활동마다 '완료 기준'을 채우면 1점씩
+   ① 활동 구성(CLS_SCORE_CAT): 세부활동(det), 조작할 수 있는 활동(act), 선택 문제 묶음 수(grp),
+      빈칸 수(inp), 확인·제출 버튼(chk), 확인 퀴즈 문항 수(quiz) — 화면을 모두 열어 조사한 결과
+   ② 완료 기준(clsScoreLeaves): 탐색 · 조작 · 선택 문제 · 빈칸 입력 · 확인·제출 · 활동 완료 · 퀴즈
+   ③ 점수 계산(clsScoreCalc): 학생의 진행 기록(이어하기 데이터)만으로 계산 → 구글 시트 '활동 점수' 탭
+   ===================================================================== */
+const CLS_SCORE_CAT = {"lesson-0-goal-card":{},"lesson-0-think-card":{"grp":1},"lesson-0-concept-card":{"chk":["✏️ 개념 확인하기"]},"lesson-0-sim-card:0":{"det":["직육면체·정육면체","각기둥","각뿔","원기둥·원뿔·구"],"act":1},"lesson-0-sim-card:1":{"det":["직육면체·정육면체","각기둥","각뿔","원기둥·원뿔·구"],"act":1},"lesson-0-sim-card:2":{"act":1,"grp":1},"lesson-0-quiz-card":{"quiz":5},"lesson-0-preview-card":{},"lesson-1-goal-card":{},"lesson-1-think-card":{"act":1},"lesson-1-concept:0":{"chk":["✏️ 개념 확인하기"]},"lesson-1-concept:1":{"act":1},"lesson-1-concept:2":{"det":["사각기둥","삼각기둥","삼각뿔","사각뿔"],"act":1},"lesson-1-concept:3":{"det":["사각기둥","삼각기둥","사각뿔"],"chk":["✔ 단면 확인"],"act":1,"grp":1},"lesson-1-sim:0":{"chk":["✏️ 개념 확인하기"],"act":1},"lesson-1-sim:1":{"act":1},"lesson-1-sim:2":{"det":["두 밑면","옆면","높이","옆모서리 연장"],"chk":["🔍 특징 확인하기"],"act":1},"lesson-1-sim:3":{"inp":9,"chk":["🔍 관찰 확인하기","✓ 확인","✓ 확인하기"],"act":1},"lesson-1-quiz-card":{"quiz":5},"lesson-2-goal-card":{},"lesson-2-think-card":{"chk":["✓ 확인"],"act":1,"grp":3},"lesson-2-concept-card":{"chk":["✏️ 개념 확인하기","✓ 확인"],"act":1,"grp":3},"lesson-2-sim:0":{"det":["△ 정삼각형","□ 정사각형","⬠ 정오각형","⬡ 정육각형"],"act":1},"lesson-2-sim:1":{"det":["정사면체","정육면체","정팔면체","정십이면체","정이십면체"],"act":1},"lesson-2-sim:2":{"det":["정사면체","정육면체","정팔면체","정십이면체","정이십면체"],"inp":20,"chk":["찾기 완료","🔍 관찰 확인하기","✓ 확인"],"act":1},"lesson-2-quiz-card":{"quiz":5},"lesson-3-goal-card":{},"lesson-3-think-card":{"chk":["▶ 돌려서 확인하기"],"act":1,"grp":1},"lesson-3-concept-card":{"chk":["✏️ 개념 확인하기"]},"lesson-3-sim:0":{"det":["직사각형","직각삼각형","반원","사다리꼴","원","도형 6","도형 7","도형 8","✏️직접 그리기"],"act":1},"lesson-3-sim:1":{"det":["직각삼각형","직사각형","사다리꼴"],"act":1},"lesson-3-sim:2":{"act":1},"lesson-3-sim:3":{"det":["📘 원뿔대","✂️ 원뿔대 만들기","🔎 원뿔대 탐색","🗺️ 원뿔대 전개도"],"inp":2,"chk":["✏️ 개념 확인하기","📘 이해 확인하기","✓ 확인","🔍 특징 확인하기"],"act":1,"grp":1},"lesson-3-sim:4":{"det":["원기둥","원뿔","원뿔대","구","회전체 단면","회전체 성질"],"chk":["✓ 확인","✏️ 성질 확인하기"],"act":1},"lesson-3-quiz-card":{"quiz":5},"lesson-4-goal-card":{},"lesson-4-think-card":{},"lesson-4-sim-card":{"inp":1,"chk":["✓ 단어 확인","📋 전체 채점"],"act":1},"lesson-4-quiz-card":{"quiz":5},"lesson-5-goal-card":{},"lesson-5-think-card":{"act":1},"lesson-5-sim-card:0":{"act":1},"lesson-5-sim-card:1":{"act":1},"lesson-5-sim-card:2":{"act":1},"lesson-5-sim-card:3":{"act":1},"lesson-5-sim-card:4":{"det":["△ 삼각형","□ 사각형","⬠ 오각형","⬡ 육각형","○ 원"],"act":1},"lesson-5-concept-card":{"inp":4,"chk":["📤 제출"],"act":1},"lesson-5-quiz-card":{"quiz":5},"lesson-6-goal-card":{},"lesson-6-think-card":{"act":1,"grp":1},"lesson-6-sim:0":{"det":["삼각뿔","사각뿔","오각뿔","원뿔"],"act":1},"lesson-6-sim:1":{"act":1},"lesson-6-concept-card":{"inp":4,"chk":["✓ 확인","📤 제출"],"act":1},"lesson-6-cups-card":{"chk":["🥤 부피 확인"],"act":1,"grp":1},"lesson-6-quiz-card":{"quiz":5},"lesson-7-goal-card":{},"lesson-7-sim:0":{"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-sim:1":{"det":["삼각기둥","사각기둥","오각기둥","원기둥"],"inp":3,"chk":["✓ 확인"],"act":1,"grp":1},"lesson-7-sim:2":{"chk":["✏️ 개념 확인하기"]},"lesson-7-sim:3":{"inp":6,"chk":["📤 제출"]},"lesson-7-sim:4":{"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-simB:0":{"det":["삼각뿔","사각뿔","오각뿔"],"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-simB:1":{"det":["🔍 원뿔 탐구","🧮 겉넓이 계산하기"],"inp":3,"chk":["✓ 확인"],"act":1},"lesson-7-simB:2":{"chk":["✏️ 개념 확인하기"]},"lesson-7-simB:3":{"inp":10,"chk":["📤 제출"]},"lesson-7-simB:4":{"inp":3,"chk":["📤 제출"]},"lesson-7-simB:5":{"inp":12,"chk":["📤 제출"]},"lesson-7-quiz-card":{"quiz":6},"lesson-8-goal-card":{},"lesson-8-think-card":{"act":1},"lesson-8-sim:0":{"grp":3},"lesson-8-sim:1":{"det":["🍦 원뿔 모양 그릇으로 붓기","⚽ 구 모양 그릇으로 붓기","🌊 원기둥에 구 넣기"],"act":1},"lesson-8-sim:2":{"det":["↔️ 나란히 보기","🪆 겹쳐 보기"],"act":1},"lesson-8-sim:3":{"inp":2,"chk":["📤 제출"],"act":1},"lesson-8-concept:0":{"grp":2},"lesson-8-concept:1":{"act":1},"lesson-8-ex:0":{"chk":["✏️ 개념 확인하기"]},"lesson-8-ex:1":{"chk":["✏️ 개념 확인하기"]},"lesson-8-ex:2":{"inp":2,"chk":["📤 제출"],"act":1},"lesson-8-ex:3":{"inp":2,"chk":["📤 제출"],"act":1},"lesson-8-quiz-card":{"quiz":5}};
+const CLS_TASK_TEXT = {
+  'lesson-0-think-card':'6개 물건의 입체도형을 모두 맞히기', 'lesson-0-concept-card':'모든 도형의 개념 확인 마치기',
+  'lesson-1-think-card':'주령구의 면 14개를 모두 찾기', 'lesson-2-think-card':'질문 1·2를 모두 해결하기',
+  'lesson-2-concept-card':'개념 확인과 정다면체가 아닌 이유 확인 마치기', 'lesson-3-think-card':'추론을 모두 돌려서 확인하기',
+  'lesson-3-concept-card':'개념 확인 빈칸 모두 맞히기', 'lesson-4-sim-card':'낱말 퍼즐의 모든 단어 풀기',
+  'lesson-5-think-card':'케이크 질문에 모두 바르게 답하기', 'lesson-5-concept-card':'예제를 모두 제출하기',
+  'lesson-6-think-card':'예상 고르기', 'lesson-6-concept-card':'생각 상자 확인과 예제 제출 마치기',
+  'lesson-6-cups-card':'잔을 골라 부피 확인하기', 'lesson-8-think-card':'모래 붓기를 3번 마치고 정리 보기',
+};
+const clsNum = t => (String(t).match(/^\s*(\d+)/) || [, ''])[1];
+/** 점수 칸(완료 기준) 목록 — 구성이 바뀌지 않는 한 늘 같은 순서 */
+const CLS_SCORE_LEAVES = (() => { const out = [];
+  CLS_UNITS.forEach(u => {
+    const L = CLS_CATALOG[u.li], c = CLS_SCORE_CAT[u.key] || {}, ln = clsNum(L.title) || String(u.li);
+    const path = u.short ? `${ln}-${u.si + 1}-${u.short.replace(')', '')}` : `${ln}-${u.si + 1}`;
+    const base = { u, lesson:L.title, step:`${u.si + 1}. ${u.step}`, sub:u.short ? `${u.short} ${u.label}` : '', path };
+    const add = (det, kind, crit, max, test) => out.push({ ...base, det, kind, crit, max, test });
+    if(c.quiz){ add('확인 퀴즈', '퀴즈', `${c.quiz}문항을 모두 풀고 결과 보기`, c.quiz, f => f.quiz(u.lesson) ? c.quiz : 0); return; }
+    const dets = c.det && c.det.length ? c.det : [null];
+    dets.forEach((d, i) => {
+      const di = d == null ? -1 : i, dn = d == null ? '(전체)' : d;
+      add(dn, '탐색', d == null ? (u.short ? '소활동 열어서 살펴보기' : '활동 열어서 살펴보기') : `'${d}' 골라서 살펴보기`, 1, f => f.seen(u, di) ? 1 : 0);
+      if(c.act) add(dn, '조작', d == null ? '활동 버튼·슬라이더·3D 화면 조작하기' : `'${d}'에서 활동 버튼·슬라이더·3D 화면 조작하기`, 1, f => f.used(u, di) ? 1 : 0);
+    });
+    if(c.grp) add('(공통)', '선택 문제', `선택 문제 ${c.grp}개에 모두 답하기`, 1, f => f.groups(u) >= c.grp ? 1 : 0);
+    if(c.inp) add('(공통)', '빈칸 입력', `빈칸 ${c.inp}개를 모두 채우기`, 1, f => f.filled(u) >= c.inp ? 1 : 0);
+    (c.chk || []).forEach(lb => add('(공통)', '확인·제출', `[${lb}] 버튼 누르기`, 1, f => f.checked(u, lb) ? 1 : 0));
+    if(CLS_TASK_TEXT[u.key]) add('(공통)', '활동 완료', CLS_TASK_TEXT[u.key], 1, f => f.done(u) ? 1 : 0);
+  });
+  return out; })();
+/** 학생 진행 기록(pg) → 칸별 점수 */
+function clsScoreFacts(pg){
+  pg = pg || {}; const det = pg.detail || {}, act = pg.act || {}, res = pg.results || {}, seen = pg.seen || {}, sub = pg.subtabs || {};
+  const has = (arr, v) => (arr || []).map(String).includes(String(v));
+  const done = new Set([...(seen.__done || []), ...(seen.__cards || [])]);
+  return {
+    quiz: lid => !!res[lid + ':quiz'],
+    seen: (u, di) => {
+      const visited = () => { if(has(act[u.key + '|v'], 1) || res[u.key] || done.has(u.key)) return true;
+        const m = u.key.match(/^(.*):(\d+)$/); if(!m) return false;
+        return has(sub[m[1]], 's' + m[2]) || has(sub[m[1]], m[2]) || has(seen[m[1]], 's' + m[2]); };
+      return di >= 0 ? has(det[u.key], di) && visited() : visited();   // 세부활동: 소활동에 들어와서 골라 본 것만
+    },
+    used: (u, di) => has(act[u.key + '|d'], di),
+    groups: u => new Set((act[u.key + '|g'] || []).map(String)).size,
+    filled: u => { const r = res[u.key]; return r && Array.isArray(r.inputs) ? r.inputs.filter(v => String(v || '').trim()).length : 0; },
+    checked: (u, lb) => has(act[u.key + '|c'], lb),
+    done: u => has(seen.__done, u.key),
+  };
+}
+/** 점수 표: 열 이름·만점·점수 (주제 → 활동 → 소활동 → 세부활동 순) + 기준표 */
+function clsScoreCalc(pg){
+  const f = clsScoreFacts(pg), got = CLS_SCORE_LEAVES.map(x => x.test(f));
+  const cols = [], max = [], val = [], crit = [];
+  const sum = pred => { let a = 0, b = 0, lo = -1, hi = -1; CLS_SCORE_LEAVES.forEach((x, i) => { if(pred(x)){ a += got[i]; b += x.max; if(lo < 0) lo = i; hi = i + 1; } }); return [a, b, [Math.max(lo, 0), Math.max(hi, 0)]]; };
+  const push = (name, [a, b, range], c) => { cols.push(name); max.push(b); val.push(a); crit.push({ ...c, range }); };
+  const T = sum(() => true);
+  CLS_CATALOG.forEach(L => push(`[주제] ${L.title}`, sum(x => x.u.lesson === L.id), { level:'주제', lesson:L.title }));
+  CLS_CATALOG.forEach(L => L.steps.forEach((s, si) => push(`[활동] ${clsNum(L.title)}-${si + 1}. ${s.label}`, sum(x => x.u.lesson === L.id && x.u.si === si), { level:'활동', lesson:L.title, step:`${si + 1}. ${s.label}` })));
+  CLS_UNITS.filter(u => u.short).forEach(u => { const L = CLS_CATALOG[u.li];
+    push(`[소활동] ${clsNum(L.title)}-${u.si + 1}-${u.short} ${u.label}`, sum(x => x.u === u), { level:'소활동', lesson:L.title, step:`${u.si + 1}. ${u.step}`, sub:`${u.short} ${u.label}` }); });
+  CLS_SCORE_LEAVES.forEach((x, i) => { cols.push(`[세부] ${x.path} ${x.det} · ${x.kind}${x.kind === '확인·제출' ? ' ' + x.crit.replace(/ 버튼 누르기$/, '') : ''}`); max.push(x.max); val.push(got[i]);
+    crit.push({ level:'세부활동', lesson:x.lesson, step:x.step, sub:x.sub, det:x.det, kind:x.kind, crit:x.crit }); });
+  return { total:T[0], max:T[1], cols, maxes:max, got:val, crit };
+}
+/* --- 학생 화면: 조작·선택·확인 버튼 기록 --- */
+function clsActAdd(unit, kind, v){
+  if(!unit) return false; const k = unit + '|' + kind, a = cls.act[k] || [];
+  if(a.map(String).includes(String(v))) return false;
+  cls.act[k] = [...a, v]; jset(CLS_KEY.act, cls.act); clsScoreSoon(); return true;
+}
+const CLS_GX = '.segmented,.viewer-toolbar,.l0-simtabs,.l5-tabs,.l0-parts,.quiz-options,.step-nav';
+function clsUnitOf(t){
+  const sec = t.closest('section.l0-sub, section.l5-act');
+  if(sec){ const k = clsSecKey(sec); if(k) return { key:k, root:sec }; }
+  const card = t.closest('article.card[id]'); if(!card || !CLS_SCORE_CAT[card.id]) return null;
+  return { key:card.id, root:card };
+}
+function clsActTrack(e){
+  if(!isStudent()) return;
+  const t = e.target; if(!t || !t.closest) return;
+  const u = clsUnitOf(t); if(!u) return;
+  const c = CLS_SCORE_CAT[u.key]; if(!c || c.quiz) return;
+  const dg = clsDetailGroup(u.root), dbs = clsDetailBtns(dg);
+  const dcur = () => { const i = dbs.findIndex(clsOn); return dbs.length ? i : -1; };
+  if(e.type === 'input'){ if(t.matches('input[type="range"]') && c.act){ const i = dcur(); if(i >= -1) clsActAdd(u.key, 'd', i); } return; }
+  if(e.type === 'pointerdown'){ if(t.matches('canvas') && c.act){ clsActAdd(u.key, 'd', dcur()); } return; }
+  const b = t.closest('button'); if(!b || b.disabled) return;
+  if(dg && dg.contains(b)) return;                       // 세부활동 고르기 → '탐색'으로 따로 기록
+  if(b.closest('.step-nav, .l0-simtabs, .l5-tabs, .l0-simnav, .scratch, .cls-modal-wrap')) return;
+  const lb = b.textContent.replace(/\s+/g, ' ').trim();
+  if((c.chk || []).includes(lb)){ clsActAdd(u.key, 'c', lb); return; }
+  const g = b.closest('[role="group"]');
+  if(g && !g.matches(CLS_GX) && !g.closest('.viewer-toolbar')){
+    const gs = [...u.root.querySelectorAll('[role="group"]')].filter(x => x.querySelector('button') && x !== dg && !(dg && x.contains(dg)) && !x.matches(CLS_GX) && !x.closest('.quiz,.scratch,.viewer-toolbar'));
+    const gi = gs.indexOf(g); if(gi >= 0){ clsActAdd(u.key, 'g', gi); return; }
+  }
+  if(c.act && !/정답 보기|내용 다시 보기|연습장|힌트|^π$/.test(lb)) clsActAdd(u.key, 'd', dcur());
+}
+document.addEventListener('click', clsActTrack, true);
+document.addEventListener('input', clsActTrack, true);
+document.addEventListener('pointerdown', clsActTrack, true);
+/* --- 점수 보내기 (바뀌었을 때만, 45초에 한 번까지) --- */
+let clsScT = 0, clsScSig = '', clsScAt = 0;
+function clsScoreSoon(){ if(!isStudent()) return; clearTimeout(clsScT); clsScT = setTimeout(clsScoreSend, Math.max(2000, 45000 - (Date.now() - clsScAt))); }
+function clsScoreSend(){
+  if(!isStudent() || !cls.user || !clsUrl()) return;
+  const r = clsScoreCalc(clsProgress()), sig = r.got.join('');
+  if(sig === clsScSig) return; clsScSig = sig; clsScAt = Date.now();
+  clsSend({ action:'scores', items:[{ sid:cls.user.sid, name:cls.user.name, total:r.total, got:r.got }], cols:r.cols, max:r.maxes, maxTotal:r.max, crit:r.crit, sentAt:new Date().toISOString() });
+}
+
 /* --- 모니터링 (관리자) --- */
 const CLS_MON = { view:null, live:false, timer:0 };
 function clsAgo(ms){ const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? `${s}초 전` : s < 3600 ? `${Math.floor(s / 60)}분 전` : `${Math.floor(s / 3600)}시간 전`; }
@@ -14724,7 +14845,7 @@ async function clsOpenMonitor(){
     </div>
     <div class="mon-wrap"><p class="l0-muted">⏳ 학생 정보를 불러오는 중…</p></div>
     <p class="l0-muted cls-note">학생 화면이 소활동을 옮길 때마다, 그리고 30초마다 알려 와요. 이 화면은 10초마다 저절로 새로 고침돼요. 마친 소활동은 다른 소활동으로 넘어갈 때 기록돼요.</p>
-    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="manage">⚙️ 수업 관리</button><button class="btn" type="button" data-a="clear" title="새 수업을 시작할 때 이전 학생 목록을 비워요">🧹 학생 목록 비우기</button></div>`, 'cls-admin cls-monitor');
+    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="manage">⚙️ 수업 관리</button><button class="btn" type="button" data-a="score" title="구글 시트의 '누적 데이터'(이어하기 데이터)로 모든 학생의 활동 점수를 다시 계산해 '활동 점수' 탭에 써요">🧮 활동 점수 다시 계산</button><button class="btn" type="button" data-a="clear" title="새 수업을 시작할 때 이전 학생 목록을 비워요">🧹 학생 목록 비우기</button></div>`, 'cls-admin cls-monitor');
   const vs = $('[data-f="view"]', m); vs.value = CLS_MON.view || 'lesson-0';
   const wrap = $('.mon-wrap', m), upd = $('.mon-upd', m);
   let data = null;
@@ -14792,6 +14913,23 @@ async function clsOpenMonitor(){
     catch(e){ try{ await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }); }catch(e2){} }
     toast('🧹 학생 목록을 비웠어요.'); load();
   }, '목록 비우기'));
+  $('[data-a="score"]', m).addEventListener('click', async e => {
+    const btn = e.currentTarget, url = clsUrl(); if(!url){ toast('구글 시트 주소가 없어요.'); return; }
+    btn.disabled = true; const t0 = btn.textContent; btn.textContent = '⏳ 계산 중…';
+    try{
+      const res = await fetch(url + (url.includes('?') ? '&' : '?') + `action=allProgress&auth=${encodeURIComponent(clsPwHash())}&t=${Date.now()}`);
+      const j = await res.json();
+      if(!j || !j.ok) throw new Error((j && j.error) || '앱스 스크립트를 최신 코드로 다시 배포했는지 확인해 주세요.');
+      const list = (j.students || []).filter(x => x.sid);
+      if(!list.length){ toast('아직 기록이 있는 학생이 없어요.'); return; }
+      let head = null;
+      const items = list.map(x => { const r = clsScoreCalc(x.progress || {}); head = head || r; return { sid:x.sid, name:x.name, total:r.total, got:r.got }; });
+      const body = JSON.stringify({ action:'scores', items, cols:head.cols, max:head.maxes, maxTotal:head.max, crit:head.crit });
+      await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body });
+      toast(`🧮 학생 ${items.length}명의 활동 점수를 '활동 점수' 탭에 기록했어요.`);
+    }catch(err){ toast('⚠️ ' + (err.message || '활동 점수를 계산하지 못했어요.')); }
+    finally{ btn.disabled = false; btn.textContent = t0; }
+  });
   clearInterval(CLS_MON.timer);
   CLS_MON.timer = setInterval(() => { if(!document.body.contains(m)) return clearInterval(CLS_MON.timer); if(!document.hidden) load(); }, 10000);
   load();
@@ -14802,6 +14940,8 @@ cls.cfg = clsNormCfg(jget(CLS_KEY.cfg, null));
 cls.results = jget(CLS_KEY.results, {});
 cls.seen = jget(CLS_KEY.seen, {});
 cls.detail = jget(CLS_KEY.detail, {});
+cls.act = jget(CLS_KEY.act, {});
+setTimeout(() => clsScoreSoon(), 4000);   // 들어오면(이어하기 포함) 활동 점수를 한 번 맞춰 보냄
 document.body.appendChild(el('div', { class:'cls-pause', id:'clsPause', hidden:true }, '<div><span aria-hidden="true">✋</span><b>잠깐! 선생님을 봐 주세요.</b><small>선생님이 화면을 멈췄어요.</small></div>'));
 
 /* =====================================================================
@@ -14817,7 +14957,7 @@ if(startHash === '#finish' && allLessonsDone()) showFinish();
 clsStart();   // 첫 화면(학생·관리자) / 이어서 진행
 
 /* 다음 단계에서 콘솔·다른 스크립트로 쓰기 쉽게 내보내기 */
-Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
+Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys, CLS_UNITS, clsSecKey, clsOwn, CLS_OWN, clsFields, LESSON_CONTENT, clsScoreCalc, CLS_SCORE_LEAVES }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
   completeLesson, goTo, renderMath, LESSON_CONTENT, LESSONS, normalizeAnswer, isInputCorrect, auditSolidCounts, countSolid, showFinish, showSolidAudit });
 </script>
 </body>
