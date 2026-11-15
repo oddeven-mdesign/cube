@@ -8087,6 +8087,7 @@ async function l3SetupThink(){
         fb.className = 'fb ' + (ok ? 'ok' : 'ng');
         fb.innerHTML = (ok ? '✓ 예상이 맞았어! ' : `✗ 예상과 달랐네. `) + it.expl;
         nameEl.textContent = `${it.label} → ${it.ans}`; row.dataset.tried = '1';
+        clsFlagHit('lesson-3-think-card', 'infer:' + row.dataset.i);   // 활동 점수: 추론마다 골라서 돌려 확인
       };
       if(rev){ rev.visible(true); rev.set(pr.prof); rev.setPhi(0); nameEl.textContent = `${it.label}을 돌리는 중…`; rev.play(2.6, null, finish); }
       else finish();
@@ -8171,6 +8172,7 @@ async function l3SetupMaker(wrap){
     if(deg < 359.5){ nameEl.textContent = deg < 0.5 ? '③ 슬라이더를 움직이거나 [1회전]을 눌러 보자' : `회전 중… ${Math.round(deg)}°`; nameBox.classList.remove('good'); result.innerHTML = ''; return; }
     const c = l3Classify(st.shape, pr.prof);
     nameEl.textContent = `🎉 ${l3Title(c)}`; nameBox.classList.add('good');
+    clsFlagHit('lesson-3-sim:0', st.shape === st.custom && st.custom ? 'draw' : 'set:' + st.shape.name + '|' + JSON.stringify(axis()));   // 활동 점수: 도형·회전축·회전 한 세트
     result.innerHTML = `<div class="l3-result"><span class="ic">${l3Icon(c.icon || 'hollow')}</span><div><b>④ 완성!</b> ${st.shape.name}을(를) 1회전 시켰더니 <b>${l3Title(c)}</b>이(가) 생겼어.<br><span class="l0-muted">${c.note}</span><br>🖐️ 3D 화면을 끌어서 완성된 회전체를 돌려 보자.</div></div>`;
   }
   function refresh(){
@@ -8423,7 +8425,7 @@ async function l3SetupProblem(wrap){
     const finish = () => {
       fb.className = 'l3-p-fb ' + (ok ? 'ok' : 'ng');
       fb.innerHTML = ok ? `✓ 정답! 돌려 보니 정말 <b>${q.ans}</b>이(가) 생겼어.` : `✗ 돌려 보니 <b>${q.ans}</b>이(가) 생겼어. 회전축에 닿은 변과 축에서 가장 먼 점을 살펴보자.`;
-      if(ok){ solved.add(qi); $('.l3-p-score', wrap).textContent = `${solved.size} / ${Q.length}`; if(solved.size === Q.length) toast('🎉 다섯 문제를 모두 맞혔어!'); }
+      if(ok){ solved.add(qi); clsFlagHit('lesson-3-sim:2', 'ok:' + qi); $('.l3-p-score', wrap).textContent = `${solved.size} / ${Q.length}`; if(solved.size === Q.length) toast('🎉 다섯 문제를 모두 맞혔어!'); }
     };
     if(rev){ rev.setPhi(0); rev.play(2.4, null, finish); } else finish();
   }
@@ -8610,7 +8612,7 @@ async function l3FruMake(wrap){
       return true;
     });
   }
-  cutBtn.addEventListener('click', () => { if(st.cut || edge()) return; st.cut = true; st.sep = 0; st.target = 1; build(); });
+  cutBtn.addEventListener('click', () => { if(st.cut || edge()) return; st.cut = true; clsFlagHit('lesson-3-sim:3', 'cut:' + Date.now()); st.sep = 0; st.target = 1; build(); });
   undoBtn.addEventListener('click', () => { if(!st.cut) return; st.target = 0; st.pendingUncut = true; if(T) viewer.requestRender(); else { st.cut = false; ui(); } });
   /* 원뿔대 만드는 다른 방법: 원뿔대 관찰 → 질문 → 회전 시뮬레이션 → 이해 확인하기(교과서 문제 2) */
   const trapBox = $('.l3-cc-trap', wrap), trapBtn = $('[data-a="trap"]', wrap), altBox = $('.l3-cc-alt', wrap);
@@ -8821,7 +8823,7 @@ async function l3FruExplore(wrap){
           solved.add(i); card.classList.remove('ng'); card.classList.add('ok');
           card.querySelectorAll('[data-j]').forEach(y => { y.disabled = true; if(y === b) y.setAttribute('aria-pressed', 'true'); });
           $('.fb', card).innerHTML = '✓ ' + x.why;
-          score.textContent = `${solved.size} / ${F.length}`;
+          score.textContent = `${solved.size} / ${F.length}`; clsFlagHit('lesson-3-sim:3', 'feat:' + solved.size);   // 활동 점수: 맞힌 특징 수
           if(solved.size === F.length) toast('🎉 원뿔대의 특징을 모두 찾았어!');
         }else{
           card.classList.remove('ng'); void card.offsetWidth; card.classList.add('ng');
@@ -9069,7 +9071,7 @@ async function l3SetupSection(wrap){
   /* 생각 상자 */
   const think = $('.l3-sec-think', wrap);
   think.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => {
-    const ok = b.dataset.t === 'cyl';
+    const ok = b.dataset.t === 'cyl'; clsFlagHit('lesson-3-sim:4', 'think');   // 활동 점수: 생각 상자 선택
     think.querySelectorAll('[data-t]').forEach(x => x.classList.remove('ok-b', 'ng-b'));
     b.classList.add(ok ? 'ok-b' : 'ng-b');
     const fb = $('.fb', think); fb.className = 'fb ' + (ok ? 'ok' : 'ng');
@@ -9091,6 +9093,8 @@ async function l3SetupSection(wrap){
   });
   $('[data-a="tcheck"]', tbox).addEventListener('click', () => {
     let right = 0, total = 0;
+    { const sel = [...tbox.querySelectorAll('td[data-c] select')], n = sel.filter(x => x.value).length;   // 활동 점수: 일부만 채우고 확인 1점, 모두 채우고 확인 2점
+      if(n) clsFlagHit('lesson-3-sim:4', n === sel.length ? 'table:full' : 'table:part'); }
     tbox.querySelectorAll('td[data-c]').forEach(td => {
       const [k, d] = td.dataset.c.split('|'), ans = d === 'perp' ? '원' : L3_SOLIDS[k].cut, v = td.querySelector('select').value;
       total++; const ok = v === ans;
@@ -14725,6 +14729,10 @@ function clsRatioLeaf(add, u, c, det, kind, what, max, skip){
   add(det, kind, `${what} ${subs.length}개 중 마친 비율로 점수 (${rule})`, max,
     f => Math.floor(max * subs.filter(x => x.test(f) > 0).length / subs.length + 1e-9));
 }
+/** 세부활동마다의 기본 기준(탐색·조작)을 모아 돌려줌: [{ d, i, k, crit, test }] */
+function clsSubs(u, c, skip){
+  const out = []; clsDetailLeaves((d, k, crit, w, test) => out.push({ d, i:(c.det || []).indexOf(d), k, crit, test }), u, c, 1, skip); return out;
+}
 /** 세부활동마다 탐색(기능 버튼)·조작(슬라이더·3D) 점수 칸 — w: 칸 하나의 배점, skip: 탐색에서 뺄 버튼 */
 function clsDetailLeaves(add, u, c, w = 1, skip = new Set()){
   const dets = c.det && c.det.length ? c.det : [null];
@@ -14775,6 +14783,44 @@ const CLS_SCORE_CUSTOM = {
     clsRatioLeaf(add, u, c, '정다면체 5개', '탐색·조작', '정다면체 5개 각각의 탐색(면·모서리·꼭짓점 버튼 누르기)과 조작(3D 화면 2개 조작)', 4);
     add('관찰 표', '확인·제출', '[🔍 관찰 확인하기]를 누르고 [✓ 확인] 누르기 (빈칸을 다 채우지 못하면 1점, 모두 채우면 2점)', 2,
       f => f.flag(u, 'fact:full') ? 2 : f.flag(u, 'fact:part') ? 1 : 0);
+  },
+  'lesson-3-think-card': (add, u, c) => {   // 회전체 › 생각 열기
+    clsSubs(u, c, new Set(['📄 종이 돌리기'])).filter(x => x.k === '탐색').forEach(x => add(x.d, x.k, x.crit, 1, x.test));
+    add('추론 1', '활동 완료', '추론 1: 선택지를 고르고 [▶ 돌려서 확인하기] 마치기', 1, f => f.flag(u, 'infer:0') ? 1 : 0);
+    add('추론 2', '활동 완료', '추론 2: 선택지를 고르고 [▶ 돌려서 확인하기] 마치기', 1, f => f.flag(u, 'infer:1') ? 1 : 0);
+  },
+  'lesson-3-sim:0': (add, u) => {   // 회전체: 도형 선택 → 회전축 → 회전 각도 한 세트마다
+    add('평면도형', '활동 완료', '평면도형 선택 → 회전축 정하기 → 1회전까지 마친 세트 1개마다 1점 (최대 3점)', 3, f => Math.min(3, f.flags(u, 'set:')));
+    add('✏️직접 그리기', '활동 완료', '직접 그린 도형으로 한 세트(회전축 정하기 → 1회전) 마치기', 1, f => f.flag(u, 'draw') ? 1 : 0);
+  },
+  'lesson-3-sim:1': (add, u, c) => {   // 회전축 비교: 도형마다 탐색과 조작을 모두 마친 수
+    const subs = clsSubs(u, c), dets = c.det || [];
+    const doneN = f => dets.filter((_, i) => { const xs = subs.filter(x => x.i === i); return xs.length && xs.every(x => x.test(f) > 0); }).length;
+    add('도형 3개', '활동 완료', `${dets.join('·')} 중 탐색([▶ 1회전])과 조작(3D 화면 2개)을 모두 마친 도형이 1개면 1점, 2개 이상이면 2점`, 2, f => Math.min(2, doneN(f)));
+  },
+  'lesson-3-sim:2': (add, u) => {   // 회전체 추론: 맞힌 개수
+    add('문제 5개', '선택 문제', '맞힌 문제 1개 1점, 2~4개 2점, 5개 3점', 3, f => { const n = f.flags(u, 'ok:'); return n >= 5 ? 3 : n >= 2 ? 2 : n >= 1 ? 1 : 0; });
+  },
+  'lesson-3-sim:3': (add, u, c) => {   // 원뿔대
+    const subs = clsSubs(u, c), D = c.det || [];
+    const base = (i, kinds) => subs.filter(x => x.i === i && kinds.includes(x.k)).forEach(x => add(x.d, x.k, x.crit, 1, x.test));
+    base(0, ['탐색']);
+    add(D[0], '활동 완료', '[✏️ 개념 확인하기]를 눌러 단어 카드를 모두 맞히기', 2, f => f.flag(u, 'word') ? 2 : 0);
+    base(1, ['탐색', '조작']);
+    add(D[1], '활동 완료', '[✂️ 자르기]로 원뿔대를 2번 이상 만들기', 1, f => f.flags(u, 'cut:') >= 2 ? 1 : 0);
+    base(2, ['탐색']);
+    add(D[2], '확인·제출', '[🔍 특징 확인하기] 누르기', 1, f => f.checked(u, '🔍 특징 확인하기') ? 1 : 0);
+    add(D[2], '선택 문제', '특징 살피기에서 1~4개 맞히면 1점, 5개 모두 맞히면 2점', 2, f => f.flag(u, 'feat:5') ? 2 : f.flags(u, 'feat:') ? 1 : 0);
+    base(3, ['탐색', '조작']);
+  },
+  'lesson-3-sim:4': (add, u, c) => {   // 회전체의 단면
+    const subs = clsSubs(u, c), D = c.det || [];
+    [0, 1, 2, 3].forEach(i => { const xs = subs.filter(x => x.i === i);
+      add(D[i], '탐색·조작', `'${D[i]}'에서 탐색(단면 버튼 누르기)과 조작(슬라이더·3D 화면 조작) 모두 마치기`, 1, f => xs.length && xs.every(x => x.test(f) > 0) ? 1 : 0); });
+    add(D[4], '빈칸 입력', '단면 정리 표를 일부만 채우고 [✓ 확인] 1점, 모두 채우고 [✓ 확인] 2점', 2, f => f.flag(u, 'table:full') ? 2 : f.flag(u, 'table:part') ? 1 : 0);
+    add(D[4], '선택 문제', '생각 상자의 선택지 고르기', 1, f => f.flag(u, 'think') ? 1 : 0);
+    add(D[5], '탐색', `'${D[5]}' 골라서 살펴보기`, 1, f => f.seen(u, 5) ? 1 : 0);
+    add(D[5], '활동 완료', '[✏️ 성질 확인하기]를 눌러 단어 카드를 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
   },
   'lesson-1-sim:0': (add, u) => {   // 각뿔대
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
@@ -14886,7 +14932,7 @@ const CLS_SCORE_NOTE = {
   'lesson-1-sim:3|[✓ 확인하기] 버튼 누르기':'[✓ 확인]과 같은 역할이면 하나로 합칠 수 있음',
 };
 function clsComposition(){
-  const KINDS = ['탐색', '조작', '선택 문제', '빈칸 입력', '확인·제출', '활동 완료', '퀴즈'];
+  const KINDS = ['탐색', '조작', '탐색·조작', '선택 문제', '빈칸 입력', '확인·제출', '활동 완료', '퀴즈'];
   const head = ['번호', '주제', '활동', '소활동', '세부활동', '활동 종류', '활동 완료 기준', '배점', '활동 점수 탭의 열 이름', '비고'];
   const r = clsScoreCalc({}), leafCols = r.cols.filter(c => c.startsWith('[세부]'));
   const rows = CLS_SCORE_LEAVES.map((x, i) => [i + 1, x.lesson, x.step, x.sub || '(소활동 없음)', x.det, x.kind, x.crit, x.max, leafCols[i] || '',
@@ -14905,7 +14951,9 @@ function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name)
 function clsWordHit(sec){ try{ const u = sec && clsUnitOf(sec); if(u) clsFlagHit(u.key, 'word'); }catch(e){} }
 /* 이 기기에 남은 단어 카드 완료 기록도 점수에 넣기 */
 setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word');
-  if(safeStorage.get('ipche-l2-concept') === '1') clsFlagHit('lesson-2-concept-card', 'word'); }, 3000);
+  if(safeStorage.get('ipche-l2-concept') === '1') clsFlagHit('lesson-2-concept-card', 'word');
+  if(safeStorage.get('ipche-l3-frustum') === '1') clsFlagHit('lesson-3-sim:3', 'word');
+  if(safeStorage.get('ipche-l3-prop') === '1') clsFlagHit('lesson-3-sim:4', 'word'); }, 3000);
 function clsConceptHit(kind, i){ try{ if(isStudent()) clsActAdd('lesson-0-concept-card', kind, i); }catch(e){} }
 /* 이 기능 전에 마친 개념 확인도 점수에 넣기 (이 기기에 남은 기록) */
 setTimeout(() => { if(!isStudent()) return; try{ const v = JSON.parse(safeStorage.get(L0C_KEY) || '[]'); (Array.isArray(v) ? v : []).forEach((x, i) => x && clsConceptHit('k', i)); }catch(e){} }, 3000);
