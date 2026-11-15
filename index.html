@@ -2331,9 +2331,9 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 .l7-explore-area .l2-sub-h{margin-top:0}
 .l7-explore-area .l7-rc-sum{margin-top:10px}
 .l7-help-row{display:flex;gap:10px;align-items:stretch}
-.l7-help-row .l7-face{flex:1;min-width:0;margin:0!important}
+.l7-help-row .l7-face{flex:1;min-width:0;margin:0!important;min-height:56px;box-sizing:border-box}
 .l7-help-row .l7-face.l7-help-hide{display:none}
-.l7-help-btn{margin-left:auto;flex:none;white-space:nowrap;min-height:44px}
+.l7-help-btn{margin:0 0 0 auto!important;flex:none;white-space:nowrap;min-height:56px;box-sizing:border-box}
 
 /* 계산 영역 [원뿔 탐구]·[겉넓이 계산하기] 같은 크기로 단 너비에 맞춤 */
 .l0-side .l7-side-btns{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -5563,7 +5563,7 @@ function setupWordCheck(sec, boxSel, storeKey, title){
         filled++; showProg(); fb.className = 'l0c-fb ok'; fb.textContent = '✓ 딱 맞아!';
         if(filled === slots.length){
           const first = !isDone(); safeStorage.set(storeKey, '1'); clsWordHit(sec);   // 활동 점수: 단어 카드 완료
-          fb.innerHTML = `🎉 <b>${title}</b>의 개념을 모두 채웠어! [📖 내용 다시 보기]로 다시 읽어 봐도 좋아.`;
+          fb.innerHTML = sec.dataset && sec.dataset.autostart ? `🎉 <b>${title}</b>의 개념을 모두 채웠어!` : `🎉 <b>${title}</b>의 개념을 모두 채웠어! [📖 내용 다시 보기]로 다시 읽어 봐도 좋아.`;
           if(first){ toast(`✓ ${title} 개념 확인 완료!`); celebrate(); }
         }
       }else{
@@ -5585,6 +5585,8 @@ function setupWordCheck(sec, boxSel, storeKey, title){
   }
   checkBtn.addEventListener('click', start);
   readBtn.addEventListener('click', read);
+  if(sec.dataset && sec.dataset.autostart){   // 버튼 없이 바로 낱말 카드 채우기
+    start(); const act = $('.l0c-actions', sec); if(act) act.remove(); sec.classList.add('wc-auto'); }
 }
 
 /* =====================================================================
@@ -11952,7 +11954,7 @@ async function l7SetupB(panel, done){
   l7Rows($('.l7-fr2', panel), [{ label:'큰 원뿔의 겉넓이', v:l7val(126, true) }, { label:'작은 원뿔의 겉넓이', v:l7val(14, true) }, { label:'단면의 넓이', v:l7val(4, true) }, { label:'원뿔대의 겉넓이', v:l7val(120, true) }],
     { onSolved:() => { w2 = true; finish(); }, fbBelow:true, steps:['(큰 원뿔의 겉넓이) $= \\pi \\times 6^2 + \\pi \\times 6 \\times 15 = 36\\pi + 90\\pi = 126\\pi\\,(\\text{cm}^2)$', '(작은 원뿔의 겉넓이) $= \\pi \\times 2^2 + \\pi \\times 2 \\times 5 = 4\\pi + 10\\pi = 14\\pi\\,(\\text{cm}^2)$', '(단면의 넓이) $= \\pi \\times 2^2 = 4\\pi\\,(\\text{cm}^2)$ ← 작은 원뿔의 밑면은 원뿔대에 없고, 원뿔대의 위 밑면은 큰 원뿔에 없으니 두 번 더해', '(겉넓이) $= 126\\pi - 14\\pi + 4\\pi \\times 2 = 120\\pi\\,(\\text{cm}^2)$'] });
   // 계산기: 겉넓이 계산 · 생활 문제 · 도전 문제
-  [$('.l7-exgrid', panel), $('.l7-hat-ex', panel), $('.l7-two', panel)].forEach(g => { if(!g) return; const row = el('div', { class:'sim-row l8-pad-row' }); g.after(row); addCalculator(row); });
+  [$('.l7-exgrid', panel), $('.l7-hat-ex', panel), $('.l7-two', panel)].forEach(g => { if(!g) return; const row = el('div', { class:'sim-row l8-pad-row l7-calc-row' }); g.after(row); addCalculator(row); });
   l7SetupRollCone($('.l7-rollcone', panel), () => { const c = $('.l7-cone', panel); c && c._exploreDone && c._exploreDone(); });
   const gPyr = { open:false };
   const PYRN = { 3:'삼각뿔', 4:'사각뿔', 5:'오각뿔' };
@@ -11975,7 +11977,7 @@ function l7SetupRollCone(wrap, onDone){
   wrap.innerHTML = `<div class="l7-rc-grid"><div class="l7-rc-svg"></div>
       <div class="l7-rc-side"><div class="l7-rc-info" aria-live="polite"></div><div class="l7-rc-sl"></div>
         <div class="sim-row l7-rc-btns"><button class="btn" type="button" data-a="back">↺ 처음으로</button><button class="btn primary" type="button" data-a="go">🔄 굴리기</button></div></div></div>
-    <div class="wc-wrap l7-rc-sum" data-wordcheck="ipche-l7-rc-arc" data-title="부채꼴의 호의 길이" hidden>
+    <div class="wc-wrap l7-rc-sum" data-autostart="1" data-wordcheck="ipche-l7-rc-arc" data-title="부채꼴의 호의 길이" hidden>
       <div class="concept-box wc-box"><span class="concept-title">✨ 알게 된 점</span>원이 <b>딱 한 바퀴</b> 굴러서 호를 모두 지나갔어. 그러니까 <span class="l7-hl">(${l0T('부채꼴의 호의 길이')}) $=$ (${l0T('밑면인 원의 둘레')}) $=$ ${l0T('2πr', '$2\\pi r$')}</span>이야.</div>
       ${WC_UI}</div>`;
   const box = $('.l7-rc-svg', wrap), info = $('.l7-rc-info', wrap), sum = $('.l7-rc-sum', wrap);
@@ -12059,7 +12061,9 @@ function setupLesson7Sim(container){
     new MutationObserver(() => { if(!c.classList.contains('step-off')) requestAnimationFrame(() => { window.dispatchEvent(new Event('resize')); ctrl[t] && ctrl[t].refresh && ctrl[t].refresh(); }); })
       .observe(c, { attributes:true, attributeFilter:['class'] }); });
   const a = l7SetupA(pA, () => finish('A')).then(c => { ctrl.A = c; const nx = $('.l7-next', pA); if(nx) nx.remove(); });
-  const b = l7SetupB(pB, () => finish('B')).then(c => { ctrl.B = c; setupSubTabs(pB); alignActionButtons(document.getElementById('lesson-7')); });
+  const b = l7SetupB(pB, () => finish('B')).then(c => { ctrl.B = c; setupSubTabs(pB);
+    // 계산기 버튼·계산기는 문제 상자(.l0-actbox) 밖 아래로
+    pB.querySelectorAll('.l7-calc-row').forEach(row => { const box = row.closest('.l0-actbox'); if(!box) return; box.after(row); if(row._calc) row.after(row._calc); }); alignActionButtons(document.getElementById('lesson-7')); });
   return Promise.all([a, b]);
 }
 
