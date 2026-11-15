@@ -5530,7 +5530,7 @@ function setupWordCheck(sec, boxSel, storeKey, title){
         card.classList.add('used'); card.disabled = true; card.draggable = false;
         filled++; showProg(); fb.className = 'l0c-fb ok'; fb.textContent = '✓ 딱 맞아!';
         if(filled === slots.length){
-          const first = !isDone(); safeStorage.set(storeKey, '1');
+          const first = !isDone(); safeStorage.set(storeKey, '1'); clsWordHit(sec);   // 활동 점수: 단어 카드 완료
           fb.innerHTML = `🎉 <b>${title}</b>의 개념을 모두 채웠어! [📖 내용 다시 보기]로 다시 읽어 봐도 좋아.`;
           if(first){ toast(`✓ ${title} 개념 확인 완료!`); celebrate(); }
         }
@@ -5746,7 +5746,7 @@ function l1SetupOX(){
       $('.fb', card).innerHTML = (ok ? '✓ 정답! ' : '✗ 다시 생각해 보자. ') + (ok ? it.why : (it.yes ? '면의 모양을 하나씩 살펴보자. 모두 다각형일까?' : '굽은 면이 있는지 살펴보자.'));
       if(ok) right.add(it.name); else right.delete(it.name);
       score.textContent = `${right.size} / ${ITEMS.length}`;
-      if(right.size === ITEMS.length) toast('🎉 모두 맞혔어! 굽은 면이 있으면 다면체가 아니야.');
+      if(right.size === ITEMS.length){ toast('🎉 모두 맞혔어! 굽은 면이 있으면 다면체가 아니야.'); clsFlagHit('lesson-1-concept:1', 'ox'); }
     }));
   });
   $('[data-a="reset"]', box).addEventListener('click', () => {
@@ -6210,7 +6210,7 @@ async function l1SetupFrustumExplore(wrap){
           card.querySelectorAll('[data-j]').forEach(y => { y.disabled = true; if(y === b) y.setAttribute('aria-pressed', 'true'); });
           $('.fb', card).innerHTML = '✓ ' + x.why;
           score.textContent = `${solved.size} / ${F.length}`;
-          if(solved.size === F.length) toast('🎉 각뿔대의 특징을 모두 찾았어!');
+          if(solved.size === F.length){ toast('🎉 각뿔대의 특징을 모두 찾았어!'); clsFlagHit('lesson-1-sim:2', 'feat:' + st.n); }   // 활동 점수: 밑면의 변의 수마다 기록
         }else{
           card.classList.remove('ng'); void card.offsetWidth; card.classList.add('ng');
           $('.fb', card).innerHTML = '✗ 다시 생각해 보자. 3D 화면에서 반짝이는 부분을 돌려 보며 살펴봐!';
@@ -6355,6 +6355,7 @@ async function l1SetupCompare(wrap){
       $('.mk', td).textContent = ok ? '✓' : '✗';
       if(ok) right++;
     });
+    if(total && !empty) clsFlagHit('lesson-1-sim:3', 'table');   // 활동 점수: 빈칸을 모두 채우고 [확인]
     if(right === total){
       fb.innerHTML = `🎉 <b>${total}칸 모두 정답!</b> 각기둥·각뿔·각뿔대의 특징을 완벽하게 비교했어.`;
       if(st.focus) celebrate();
@@ -6392,6 +6393,7 @@ async function l1SetupCompare(wrap){
   }));
   $('[data-a="disc"]', wrap).addEventListener('click', () => {
     let good = 0;
+    if(list.querySelector('.l1-disc[aria-pressed="true"]')) clsFlagHit('lesson-1-sim:3', 'disc');   // 활동 점수: 문장을 골라 [확인하기]
     list.querySelectorAll('.l1-disc').forEach(b => {
       const d = DISC[+b.dataset.i], on = b.getAttribute('aria-pressed') === 'true';
       b.classList.remove('ok', 'ng', 'miss');
@@ -14718,7 +14720,27 @@ const CLS_VIEW_BTN = new Set(['autoRotate', 'reset', 'faceColor', 'edges', 'vert
 Object.entries(CLS_SCORE_FX).forEach(([k, v]) => { if(CLS_SCORE_CAT[k]) CLS_SCORE_CAT[k].fx = v.map(([b, s, n]) => ({ b:b.filter(x => !CLS_VIEW_BTN.has(x)), s, v:n })); });
 const CLS_TOOL_NAME = { autoRotate:'🔄 자동 회전', reset:'🎯 처음 위치로', faceColor:'🎨 면 색칠', edges:'✏️ 모서리 강조', vertices:'🔴 꼭짓점 강조', transparent:'👻 투명도', info:'📋 개수 보기' };
 /* 소활동 안의 추가 '활동 완료' 기준: [신호 이름, 완료 기준, 배점] */
-const CLS_EXTRA_DONE = { 'lesson-0-sim-card:2':['sort', '카드 10개를 모두 바르게 분류하기', 1] };
+const CLS_EXTRA_DONE = { 'lesson-0-sim-card:2':['sort', '카드 10개를 모두 바르게 분류하기', 1], 'lesson-1-concept:1':['ox', '8개 도형의 다면체 O/X를 모두 맞히기', 1] };
+/* 활동마다 따로 정한 점수 기준 (기본 기준 대신) */
+const CLS_SCORE_CUSTOM = {
+  'lesson-1-sim:0': (add, u) => {   // 각뿔대
+    add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('(공통)', '확인·제출', '[✏️ 개념 확인하기] 버튼 누르기', 1, f => f.checked(u, '✏️ 개념 확인하기') ? 1 : 0);
+    add('(공통)', '활동 완료', '[✏️ 개념 확인하기]의 단어 카드를 모두 맞히기', 1, f => f.flag(u, 'word') ? 1 : 0);
+  },
+  'lesson-1-sim:2': (add, u) => {   // 각뿔대 탐색
+    add('각뿔대 살펴보기', '탐색', '각뿔대 살펴보기 버튼 4개(두 밑면, 옆면, 높이, 옆모서리 연장)를 모두 누르기', 1, f => [0, 1, 2, 3].every(i => f.seen(u, i)) ? 1 : 0);
+    add('(공통)', '조작', '3D 화면과 슬라이더를 모두 조작하기', 1, f => f.anyS(u) && f.anyV(u) ? 1 : 0);
+    add('특징 확인하기', '활동 완료', '[🔍 특징 확인하기]를 눌러 특징 6개를 모두 맞히기', 1, f => f.flags(u, 'feat:') >= 1 ? 1 : 0);
+    add('다른 각뿔대 탐색', '활동 완료', '슬라이더로 밑면의 변의 수를 바꾼 각뿔대에서도 특징 6개를 모두 맞히기', 1, f => f.flags(u, 'feat:') >= 2 ? 1 : 0);
+  },
+  'lesson-1-sim:3': (add, u) => {   // 비교 관찰
+    add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('(전체)', '조작', '슬라이더와 3D 화면 3개를 모두 조작하기', 1, f => f.sliders(u, -1) >= 1 && f.views(u, -1) >= 3 ? 1 : 0);
+    add('관찰 표', '확인·제출', '[🔍 관찰 확인하기]를 누르고 빈칸을 모두 채워 [✓ 확인] 누르기', 2, f => f.checked(u, '🔍 관찰 확인하기') && f.flag(u, 'table') ? 2 : 0);
+    add('발견 문장', '확인·제출', '맞는 문장을 체크하고 [✓ 확인하기] 누르기', 1, f => f.flag(u, 'disc') ? 1 : 0);
+  },
+};
 const CLS_TASK_TEXT = {
   'lesson-0-think-card':'6개 물건의 입체도형을 모두 맞히기', 'lesson-0-concept-card':'모든 도형의 개념 확인 마치기',
   'lesson-1-think-card':'주령구의 면 14개를 모두 찾기', 'lesson-2-think-card':'질문 1·2를 모두 해결하기',
@@ -14736,6 +14758,7 @@ const CLS_SCORE_LEAVES = (() => { const out = [];
     const path = u.short ? `${ln}-${u.si + 1}-${u.short.replace(')', '')}` : `${ln}-${u.si + 1}`;
     const base = { u, lesson:L.title, step:`${u.si + 1}. ${u.step}`, sub:u.short ? `${u.short} ${u.label}` : '', path };
     const add = (det, kind, crit, max, test) => out.push({ ...base, det, kind, crit, max, test });
+    if(CLS_SCORE_CUSTOM[u.key]){ CLS_SCORE_CUSTOM[u.key](add, u, c); return; }
     if(c.quiz){ add('확인 퀴즈', '퀴즈', `${c.quiz}문항을 모두 풀고 결과 보기`, 3, f => f.quiz(u.lesson) ? 3 : 0); return; }   // 확인 퀴즈: 주제마다 3점
     if(c.l0c){   // 0. 복습 › 개념: 도형 탭 7개가 세부활동
       const last = c.det.length - 1;
@@ -14786,6 +14809,9 @@ function clsScoreFacts(pg){
     used: (u, di) => has(act[u.key + '|d'], di),
     part: (u, id) => has(act[u.key + '|p'], id),
     flag: (u, nm) => has(act[u.key + '|f'], nm),
+    flags: (u, pre) => (act[u.key + '|f'] || []).filter(x => String(x).startsWith(pre)).length,
+    anyS: u => (act[u.key + '|s'] || []).length > 0,
+    anyV: u => (act[u.key + '|v3'] || []).length > 0,
     btn: (u, id) => has(act[u.key + '|b'], id),
     sliders: (u, i) => new Set((act[u.key + '|s'] || []).map(String).filter(x => x.split(':')[0] === String(i))).size,
     views: (u, i) => new Set((act[u.key + '|v3'] || []).map(String).filter(x => x.split(':')[0] === String(i))).size,
@@ -14808,7 +14834,7 @@ function clsScoreCalc(pg){
   CLS_CATALOG.forEach(L => L.steps.forEach((s, si) => push(`[활동] ${clsNum(L.title)}-${si + 1}. ${s.label}`, sum(x => x.u.lesson === L.id && x.u.si === si), { level:'활동', lesson:L.title, step:`${si + 1}. ${s.label}` })));
   CLS_UNITS.filter(u => u.short).forEach(u => { const L = CLS_CATALOG[u.li];
     push(`[소활동] ${clsNum(L.title)}-${u.si + 1}-${u.short} ${u.label}`, sum(x => x.u === u), { level:'소활동', lesson:L.title, step:`${u.si + 1}. ${u.step}`, sub:`${u.short} ${u.label}` }); });
-  CLS_SCORE_LEAVES.forEach((x, i) => { cols.push(`[세부] ${x.path} ${x.det} · ${x.kind}${x.kind === '확인·제출' ? ' ' + x.crit.replace(/ 버튼 누르기$/, '') : ''}`); max.push(x.max); val.push(got[i]);
+  CLS_SCORE_LEAVES.forEach((x, i) => { cols.push(`[세부] ${x.path} ${x.det} · ${x.kind}${x.kind === '확인·제출' && x.det === '(공통)' ? ' ' + x.crit.replace(/ 버튼 누르기$/, '') : ''}`); max.push(x.max); val.push(got[i]);
     crit.push({ level:'세부활동', lesson:x.lesson, step:x.step, sub:x.sub, det:x.det, kind:x.kind, crit:x.crit }); });
   return { total:T[0], max:T[1], cols, maxes:max, got:val, crit };
 }
@@ -14836,6 +14862,9 @@ function clsComposition(){
 /** 0. 복습 › 개념: 도형 탭 열기(t)·개념 확인 마침(k) 기록 */
 /** 활동 안의 '끝까지 마침' 신호 기록 (예: 분류 활동 10개 모두) */
 function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name); }catch(e){} }
+function clsWordHit(sec){ try{ const u = sec && clsUnitOf(sec); if(u) clsFlagHit(u.key, 'word'); }catch(e){} }
+/* 이 기기에 남은 단어 카드 완료 기록도 점수에 넣기 */
+setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word'); }, 3000);
 function clsConceptHit(kind, i){ try{ if(isStudent()) clsActAdd('lesson-0-concept-card', kind, i); }catch(e){} }
 /* 이 기능 전에 마친 개념 확인도 점수에 넣기 (이 기기에 남은 기록) */
 setTimeout(() => { if(!isStudent()) return; try{ const v = JSON.parse(safeStorage.get(L0C_KEY) || '[]'); (Array.isArray(v) ? v : []).forEach((x, i) => x && clsConceptHit('k', i)); }catch(e){} }, 3000);
@@ -15050,7 +15079,7 @@ if(startHash === '#finish' && allLessonsDone()) showFinish();
 clsStart();   // 첫 화면(학생·관리자) / 이어서 진행
 
 /* 다음 단계에서 콘솔·다른 스크립트로 쓰기 쉽게 내보내기 */
-Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys, CLS_UNITS, clsSecKey, clsOwn, CLS_OWN, clsFields, LESSON_CONTENT, clsScoreCalc, CLS_SCORE_LEAVES, clsComposition }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
+Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys, CLS_UNITS, clsSecKey, clsOwn, CLS_OWN, clsFields, LESSON_CONTENT, clsScoreCalc, CLS_SCORE_LEAVES, clsComposition, clsUnitOf }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
   completeLesson, goTo, renderMath, LESSON_CONTENT, LESSONS, normalizeAnswer, isInputCorrect, auditSolidCounts, countSolid, showFinish, showSolidAudit });
 </script>
 </body>
