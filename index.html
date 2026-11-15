@@ -1060,7 +1060,9 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 
 <!-- ===================== 8. 구의 부피와 겉넓이 전용 스타일 ===================== -->
 <style id="lesson8-style">
-.l8-sum{margin-top:16px}
+.l8-sum{margin-top:34px}
+.l8-sum .l8-line.l8-off{visibility:hidden;animation:none}
+.l8-sum .l8-line.l5-big{padding-top:10px;padding-bottom:10px;min-height:2.6em;overflow:visible}
 .l8-line{margin:.45em 0!important;padding:6px 10px;border-left:4px solid var(--accent);background:#fff;border-radius:0 8px 8px 0;animation:fadeIn .45s ease;overflow-x:auto}
 .l8-line.l5-big{font-size:1.2rem;border-left-width:6px;background:#E8EAF6}
 .l8-sum .sim-row{margin-top:8px}
@@ -2432,7 +2434,7 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 .l8-hemi-info{margin:0 0 12px!important;width:100%;box-sizing:border-box}
 .l8-hemi-grid{align-items:start}
 .l8-hemi-side{gap:16px!important;margin-top:0}
-.l8-hemi-btns{display:flex!important;flex-direction:column;align-items:flex-end;gap:10px;margin:0}
+.l8-hemi-btns{display:flex!important;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;align-items:stretch;gap:8px;margin:0}
 .l8-hemi-btns .btn{width:auto!important;white-space:nowrap}
 
 /* 교과서 글자체 변수 (Times New Roman, 굵게, 문자는 기울임) */
@@ -2457,6 +2459,9 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 /* 원기둥에 구 넣기: 버튼 3개 한 줄 균등 */
 .l8-hemi-btns.sink{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
 .l8-hemi-btns.sink .btn{width:100%!important;justify-content:center;white-space:normal}
+/* 생각 열기·물 붓기: [처음으로·비우기] [붓기] 버튼을 항상 한 줄로 */
+.l8-hemi-btns:not(.sink){flex-wrap:nowrap!important;justify-content:flex-end}
+.l8-hemi-btns:not(.sink) .btn{flex:0 1 auto;min-width:0;white-space:nowrap;padding-left:10px;padding-right:10px}
 /* 물높이 그래프: 이름·비율 칸 고정 → 막대 길이 같게, 변하지 않게 */
 .l8-wbars .l6-bar{grid-template-columns:6.3em minmax(0,1fr) 4.4em!important;column-gap:6px}
 .l8-wbars .l6-bar > em{font-size:.9rem}
@@ -12221,6 +12226,7 @@ function l8SetupObs(id, qs){
       b.classList.add(ok ? 'ok' : 'ng');
       fb.className = 'l8-fb ' + (ok ? 'ok' : 'ng'); fb.innerHTML = (ok ? '✓ ' : '✗ ') + (ok ? qs[i].ok : qs[i].ng); renderMath(fb);
       const nx = box.querySelector(`.l8-oq[data-i="${i + 1}"]`); if(ok && nx) nx.hidden = false;
+      if(ok) clsElFlag(box, 'obs:' + i);   // 활동 점수: 관찰 질문 정답
     }));
   });
 }
@@ -12346,7 +12352,7 @@ async function l8SetupHemi(box){
       <p class="l8-line" hidden>② 구는 반구 2개 → <b>구</b>는 원기둥의 $\\dfrac{1}{3} \\times 2 = \\dfrac{2}{3}$</p>
       <p class="l8-line" hidden>③ (구의 부피) $= \\dfrac{2}{3} \\times$ (원기둥의 부피) $= \\dfrac{2}{3} \\times (\\pi r^2 \\times 2r)$</p>
       <p class="l8-line l5-big" hidden>④ (구의 부피) $= \\dfrac{4}{3}\\pi r^3$</p>
-      <div class="sim-row"><button class="btn ghost" type="button" data-a="replay">↻ 한 줄씩 다시 보기</button></div>
+      <div class="sim-row"><button class="btn primary" type="button" data-a="next">① 단계 보기 ▶</button><button class="btn ghost" type="button" data-a="replay">↺ 처음부터</button></div>
     </div>`;
   renderMath(box);
   const R = L8_R, SC = 0.27, cylX = R + 1.0, bowlX = -(R + 1.0), ANG = -2.0;
@@ -12358,14 +12364,16 @@ async function l8SetupHemi(box){
     '[반구에 모래 채워 붓기] 버튼을 클릭하면 반구 모양 그릇에 모래를 가득 채워 원기둥 통에 부어요. 몇 번 부으면 원기둥 통이 가득 찰까요? 예측해 봅시다.',
     '반구로 <b>1번</b> 부었더니 원기둥 높이의 <b>⅓</b>만큼 찼어. 몇 번 더 부어야 가득 찰까?',
     '<b>2번</b> 부었더니 <b>⅔</b>까지! 한 번 더 부어 보자.',
-    '🎉 반구 모양 그릇으로 <b>3번</b> 부었더니 원기둥 통이 가득 찼어! 아래 정리를 한 줄씩 살펴보자.',
+    '🎉 반구 모양 그릇으로 <b>3번</b> 부었더니 원기둥 통이 가득 찼어! 아래 정리를 한 단계씩 눌러 살펴보자.',
   ];
-  let timers = [];
-  function reveal(){
-    sum.hidden = false; timers.forEach(clearTimeout); timers = [];
-    lines.forEach(l => { l.hidden = true; });
-    lines.forEach((l, i) => timers.push(setTimeout(() => { l.hidden = false; }, L0_REDUCED_MOTION ? 0 : 500 + i * 1200)));
-  }
+  // 정리: [단계 보기]를 누를 때마다 한 줄씩 (4단계까지 자리는 미리 확보)
+  const nextB = $('[data-a="next"]', sum), NUM = ['①', '②', '③', '④'];
+  let shown = 0;
+  const showLines = () => { lines.forEach((l, i) => { l.hidden = false; l.classList.toggle('l8-off', i >= shown); l.setAttribute('aria-hidden', String(i >= shown)); });
+    nextB.disabled = shown >= lines.length; nextB.textContent = shown >= lines.length ? '정리 끝 ✓' : `${NUM[shown]} 단계 보기 ▶`;
+    if(shown >= lines.length) clsElFlag(box, 'sum'); };   // 활동 점수: 정리 4단계 모두 보기
+  function reveal(){ sum.hidden = false; shown = 0; showLines(); }
+  nextB.addEventListener('click', () => { if(shown < lines.length){ shown++; showLines(); } });
   $('[data-a="replay"]', sum).addEventListener('click', reveal);
   function ui(){
     countEl.textContent = st.count;
@@ -12374,7 +12382,7 @@ async function l8SetupHemi(box){
     $('em', bar).innerHTML = l0Fx(st.phase === 'idle' ? LV[st.count] : `${Math.round(st.level * 100)}%`);
     if(st.phase === 'idle') msg.innerHTML = l0Fx(MSG[st.count]);
   }
-  function done(){ ui(); if(st.count >= 3){ celebrate(); reveal(); } }
+  function done(){ ui(); if(st.count >= 3){ clsElFlag(box, 'full'); celebrate(); reveal(); } }
 
   const viewer = await create3DViewer($('.l8-hemi-v', box), { showInfo:false, tools:['autoRotate', 'reset'] });
   const T = viewer.ok ? viewer.THREE : null;
@@ -12439,7 +12447,7 @@ async function l8SetupHemi(box){
   $('[data-a="reset"]', box).addEventListener('click', () => {
     if(st.phase !== 'idle') return;
     Object.assign(st, { count:0, t:0, from:0, level:0 });
-    timers.forEach(clearTimeout); sum.hidden = true;
+    sum.hidden = true;
     if(T){ l8SetLevel(cylSand, 0); bowlSand.visible = false; bowl.position.copy(home); bowl.rotation.z = 0; viewer.requestRender(); }
     ui();
   });
@@ -12490,7 +12498,7 @@ async function l8SetupCompare(box){
   $('.l8-r', box).appendChild(slider.el);
   draw();
   const setMode = on => {
-    overlap = on; ovBtn.setAttribute('aria-pressed', String(on)); sdBtn.setAttribute('aria-pressed', String(!on));
+    overlap = on; clsElFlag(box, on ? 'ov' : 'sd'); ovBtn.setAttribute('aria-pressed', String(on)); sdBtn.setAttribute('aria-pressed', String(!on));
     if(on) ovInfo.hidden = false;   // 안내 글상자는 [겹쳐 보기]를 한 번 누른 뒤부터
     setOverlap3D();
   };
@@ -12645,7 +12653,7 @@ async function l8SetupWater(box){
         ? '원기둥 그릇에 물을 <b>가득</b> 채웠어. 이 원기둥에 <b>꼭 맞는 구</b>를 넣으면 물이 얼마나 넘칠까?'
         : st.stage === 'in'
           ? '구가 꼭 맞게 들어가면서 물이 넘쳤어. <b>넘친 물은 원기둥의 $\\dfrac{2}{3}$</b>! 넘친 물의 부피는 구의 부피와 같아. 이제 구를 꺼내 보자.'
-          : '🎉 구를 꺼냈더니 <b>남은 물은 원기둥의 $\\dfrac{1}{3}$</b>! 넘친 물 $\\dfrac{2}{3}$ + 남은 물 $\\dfrac{1}{3}$ = 원기둥 1 → (구의 부피) $= \\dfrac{2}{3} \\times$ (원기둥의 부피)';
+          : '🎉 구를 꺼냈더니 <b>남은 물</b>은 <b>원기둥의 $\\dfrac{1}{3}$!</b><br><b>넘친 물 $\\dfrac{2}{3}$ + 남은 물 $\\dfrac{1}{3}$ = 원기둥 1</b><br>→ <b>(구의 부피) $= \\dfrac{2}{3} \\times$ (원기둥의 부피)</b>';
     }else{
       setBar('main', st.level, fr(st.level));
       cnt.innerHTML = `부은 횟수 <b>${st.count}</b>번`;
@@ -12654,10 +12662,10 @@ async function l8SetupWater(box){
         if(st.mode === 'cone') msg.innerHTML = st.count === 0
           ? '원뿔 그릇은 원기둥 그릇과 <b>밑면이 합동</b>이고 <b>높이가 같아</b>. 물을 가득 채워 부어 보자!'
           : st.count < 3 ? `${st.count}번 부었더니 원기둥의 <b>${l0Fx(fr(st.level))}</b>만큼 찼어. 한 번 더!`
-          : '🎉 원뿔 그릇으로 <b>3번</b> 부었더니 가득! (원뿔) $= \\dfrac{1}{3} \\times$ (원기둥) — 이제 [⚽ 구 그릇으로 붓기]와 비교해 보자.';
+          : '🎉 원뿔 그릇으로 <b>3번</b> 부었더니 가득!<br><b>(원뿔) $= \\dfrac{1}{3} \\times$ (원기둥)</b><br>이제 [⚽ 구 그릇으로 붓기]와 비교해 보자.';
         else msg.innerHTML = st.count === 0
           ? '구 그릇은 원기둥 그릇에 <b>꼭 맞게</b> 들어가는 크기야. 물을 가득 채워 <b>한 번</b> 부어 보자. 원기둥의 어디까지 찰까?'
-          : '🎉 구 그릇으로 <b>한 번</b> 부었더니 원기둥의 <b>$\\dfrac{2}{3}$</b>까지 찼어! (구) $= \\dfrac{2}{3} \\times$ (원기둥) $= 2 \\times$ (원뿔)';
+          : '🎉 원기둥 그릇에 구 그릇으로 <b>한 번</b> 부었더니<br><b>원기둥의 $\\dfrac{2}{3}$</b>까지 찼어!<br><b>(구) $= \\dfrac{2}{3} \\times$ (원기둥) $= 2 \\times$ (원뿔)</b>';
       }
     }
     if(!busy) renderMath(msg);
@@ -12679,7 +12687,7 @@ async function l8SetupWater(box){
     const M = MODES[st.mode];
     if(a === 'pour'){
       if(st.count >= M.pours) return;
-      if(!T){ st.count++; st.level = Math.min(1, st.count * M.per); ui(); if(st.count >= M.pours) celebrate(); return; }
+      if(!T){ st.count++; st.level = Math.min(1, st.count * M.per); ui(); if(st.count >= M.pours){ clsElFlag(box, st.mode); celebrate(); } return; }
       st.phase = 'filling'; st.t = 0; st.from = st.level;
       msg.innerHTML = `💧 ${st.mode === 'cone' ? '원뿔' : '구'} 그릇에 물을 채워 붓는 중…`;
     }else if(a === 'in'){
@@ -12688,7 +12696,7 @@ async function l8SetupWater(box){
       st.phase = 'down'; st.t = 0; msg.innerHTML = '⬇️ 구를 천천히 넣는 중… 물이 넘쳐서 옆 통으로 모여.';
     }else if(a === 'out'){
       if(st.stage !== 'in') return;
-      if(!T){ st.L = 2 * R / 3; st.stage = 'removed'; ui(); celebrate(); return; }
+      if(!T){ st.L = 2 * R / 3; st.stage = 'removed'; ui(); clsElFlag(box, 'sink'); celebrate(); return; }
       st.phase = 'up'; st.t = 0; msg.innerHTML = '⬆️ 구를 꺼내는 중… 물이 얼마나 남을까?';
     }
     ui(); viewer.requestRender && viewer.requestRender();
@@ -12713,7 +12721,7 @@ async function l8SetupWater(box){
       if(t >= 2.9){
         st.phase = 'idle'; st.count++; st.level = Math.min(1, st.count * M.per);
         o.src.position.copy(o.home); o.src.rotation.z = 0; o.stream.visible = false;
-        if(st.count >= M.pours) celebrate();
+        if(st.count >= M.pours){ clsElFlag(box, st.mode); celebrate(); }   // 활동 점수: 실험 마치기
       }
     }else if(st.phase === 'down'){
       const k = l5Ease(Math.min(1, st.t / 3)); st.c = C_TOP + (R - C_TOP) * k;
@@ -12727,7 +12735,7 @@ async function l8SetupWater(box){
       const k = l5Ease(Math.min(1, st.t / 3)); st.c = R + (C_TOP - R) * k;
       o.ball.position.y = st.c; o.ballLab.position.y = st.c + R + 0.7;
       st.L = levelFor(st.c, (1 - st.spilled) * VCYL); l8SetLevel(o.water, st.L * 0.985);
-      if(k >= 1){ st.phase = 'idle'; st.stage = 'removed'; st.L = 2 * R / 3; celebrate(); }
+      if(k >= 1){ st.phase = 'idle'; st.stage = 'removed'; st.L = 2 * R / 3; clsElFlag(box, 'sink'); celebrate(); }
     }
     ui();
     return true;
@@ -12766,7 +12774,7 @@ function l8SetupArch(box){
     </div>`;
   renderMath(box);
   const tomb = $('.l8-tomb', box), sb = $('[data-a="story"]', box);
-  const showStory = () => { tomb.hidden = false; sb.hidden = true; };
+  const showStory = () => { tomb.hidden = false; sb.hidden = true; clsElFlag(box, 'story'); };
   sb.addEventListener('click', showStory);
   l7Rows($('.l8-arch-q', box), [
     { label:'구의 부피', v:l7val(2), unit:'', ph:'예) 5' },
@@ -12781,7 +12789,10 @@ function l8SetupArch(box){
    구의 겉넓이: 영상 · 관찰 질문 · 단계별 애니메이션
    ===================================================================== */
 function l8SetupVideo(){
+  const vHit = v => { const sec = v.closest('section'); const k = sec ? [...sec.querySelectorAll('.l8-video')].indexOf(v) : 0; clsElFlag(v, 'video:' + k); };   // 활동 점수: 영상 재생
+  document.querySelectorAll('#lesson-8 .l8-video video').forEach(vid => vid.addEventListener('play', () => vHit(vid.closest('.l8-video'))));
   document.querySelectorAll('#lesson-8 .l8-facade').forEach(fac => $('.l8-play', fac).addEventListener('click', () => {   // 누를 때만 YouTube 플레이어 불러오기
+    vHit(fac);
     // 파일로 연 웹앱(file://)에서는 YouTube가 보낼 주소(origin)가 없어 영상 안에서 재생이 막힌다 → 작은 YouTube 창으로 열기
     if(location.protocol === 'file:' && fac.dataset.watch){
       const w = window.open(fac.dataset.watch, 'l8-yt', 'width=1000,height=620');
@@ -12909,9 +12920,10 @@ function l8SetupOrange(box){
   const render = (s, u) => { split(s > 0 ? 1 : u); drawCircles(s > 1 ? 1 : s === 1 ? u : 0); fill(s === 2 ? u : 0); };
   function run(s){
     stage = s; cancelAnimationFrame(raf);
-    if(L0_REDUCED_MOTION){ render(s, 1); return; }
+    if(s === 2) clsElFlag(box, 'step3');   // 활동 점수: 3단계까지 보기
+    if(L0_REDUCED_MOTION){ render(s, 1); if(s === 2) clsElFlag(box, 'fill4'); return; }
     const t0 = performance.now();
-    const loop = now => { const u = l8Clamp((now - t0) / 1000 / D[stage]); render(stage, u); if(u < 1) raf = requestAnimationFrame(loop); };
+    const loop = now => { const u = l8Clamp((now - t0) / 1000 / D[stage]); render(stage, u); if(u < 1) raf = requestAnimationFrame(loop); else if(stage === 2) clsElFlag(box, 'fill4'); };
     raf = requestAnimationFrame(loop);
   }
   const stepper = createStepper({ steps:[
@@ -15092,6 +15104,62 @@ const CLS_SCORE_CUSTOM = {
     add('방법 1', '빈칸 입력', '방법 1의 빈칸 4개를 모두 채우기', 1, f => f.flag(u, 'ex0:fill') ? 1 : 0);
     add('방법 2', '빈칸 입력', '방법 2의 빈칸 4개를 모두 채우기', 1, f => f.flag(u, 'ex1:fill') ? 1 : 0);
     add('정답 보기', '확인·제출', '방법 1, 2의 [👀 정답 보기]를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+  },
+  'lesson-8-think-card': (add, u) => {   // 구 › 생각 열기: 반구로 모래 붓기 (3점)
+    add('(전체)', '조작', '3D 화면 조작하기', 1, f => f.anyV(u) ? 1 : 0);
+    add('모래 붓기', '활동 완료', '[🥣 반구에 모래 채워 붓기]로 3번 부어 원기둥 통을 가득 채우기', 1, f => f.flag(u, 'full') ? 1 : 0);
+    add('구의 부피 정리', '활동 완료', '정리 상자의 [단계 보기]를 눌러 ①~④단계를 모두 보기', 1, f => f.flag(u, 'sum') ? 1 : 0);
+  },
+  'lesson-8-sim:0': (add, u) => {   // 구 부피 탐구 › 실험 영상 (4점)
+    add('실험 영상', '탐색', '실험 영상 재생하기', 1, f => f.flags(u, 'video:') >= 1 ? 1 : 0);
+    ['원뿔 그릇', '반구 그릇', '구의 부피'].forEach((nm, i) => add(`관찰 질문 ${i + 1}`, '선택 문제', `관찰 질문 ${i + 1}(${nm}) 정답 고르기`, 1, f => f.flag(u, 'obs:' + i) ? 1 : 0));
+  },
+  'lesson-8-sim:1': (add, u) => {   // 구 부피 탐구 › 물 붓기 실험 (4점)
+    add('🍦 원뿔 모양 그릇으로 붓기', '활동 완료', '원뿔 그릇으로 3번 부어 원기둥 그릇을 가득 채우기', 1, f => f.flag(u, 'cone') ? 1 : 0);
+    add('⚽ 구 모양 그릇으로 붓기', '활동 완료', '구 그릇으로 1번 부어 원기둥의 ⅔까지 채우기', 1, f => f.flag(u, 'sphere') ? 1 : 0);
+    add('🌊 원기둥에 구 넣기', '활동 완료', '[⬇️ 구 넣기]와 [⬆️ 구 꺼내기]를 차례로 마치기', 1, f => f.flag(u, 'sink') ? 1 : 0);
+    add('(공통)', '조작', '3D 화면 조작하기', 1, f => f.anyV(u) ? 1 : 0);
+  },
+  'lesson-8-sim:2': (add, u) => {   // 구 부피 탐구 › 원기둥·원뿔·구 (2점)
+    add('(공통)', '탐색', '[↔️ 나란히 보기]와 [🪆 겹쳐 보기]를 모두 누르기', 1, f => f.flag(u, 'ov') && f.flag(u, 'sd') ? 1 : 0);
+    add('(공통)', '조작', '반지름 슬라이더와 3D 화면을 모두 조작하기', 1, f => f.anyS(u) && f.anyV(u) ? 1 : 0);
+  },
+  'lesson-8-sim:3': (add, u) => {   // 구 부피 탐구 › 생각이 크는 수학: 아르키메데스 (4점)
+    add('(공통)', '빈칸 입력', '빈칸 2개(구의 부피, 원기둥의 부피)를 모두 채우기', 1, f => f.flag(u, 'ex0:fill') ? 1 : 0);
+    add('(공통)', '확인·제출', '[📤 제출]한 답이 모두 정답', 1, f => f.flag(u, 'ex0:ok') ? 1 : 0);
+    add('정답 보기', '확인·제출', '[👀 정답 보기] 누르기', 1, f => f.flag(u, 'ex0:sol') ? 1 : 0);
+    add('아르키메데스 이야기', '탐색', '아르키메데스 이야기(묘비) 보기', 1, f => f.flag(u, 'story') ? 1 : 0);
+  },
+  'lesson-8-concept:0': (add, u) => {   // 구 겉넓이 탐구 › 실험 영상 (3점)
+    add('실험 영상', '탐색', '실험 영상 재생하기', 1, f => f.flags(u, 'video:') >= 1 ? 1 : 0);
+    ['귤 껍질', '털실'].forEach((nm, i) => add(`관찰 질문 ${i + 1}`, '선택 문제', `관찰 질문 ${i + 1}(${nm}) 정답 고르기`, 1, f => f.flag(u, 'obs:' + i) ? 1 : 0));
+  },
+  'lesson-8-concept:1': (add, u) => {   // 구 겉넓이 탐구 › 시뮬레이션: 오렌지 실험 (2점)
+    add('단계 보기', '탐색', '[다음 단계 ▶]를 눌러 3단계까지 보기', 1, f => f.flag(u, 'step3') ? 1 : 0);
+    add('껍질로 원 채우기', '활동 완료', '3단계 애니메이션을 끝까지 보고 껍질로 원 4개를 모두 채우기', 1, f => f.flag(u, 'fill4') ? 1 : 0);
+  },
+  'lesson-8-ex:0': (add, u) => {   // 정리와 활용 › 구의 부피 (2점)
+    add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('(공통)', '활동 완료', '[✏️ 개념 확인하기]를 눌러 단어 카드를 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
+  },
+  'lesson-8-ex:1': (add, u) => {   // 정리와 활용 › 구의 겉넓이 (2점)
+    add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('(공통)', '활동 완료', '[✏️ 개념 확인하기]를 눌러 단어 카드를 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
+  },
+  'lesson-8-ex:2': (add, u) => {   // 정리와 활용 › 예제 (6점)
+    [['부피 문제', 0], ['겉넓이 문제', 1]].forEach(([nm, i]) => {
+      add(nm, '빈칸 입력', '빈칸을 입력하고 [📤 제출] 누르기', 1, f => f.flag(u, `ex${i}:sub`) ? 1 : 0);
+      add(nm, '확인·제출', '제출한 답이 정답', 1, f => f.flag(u, `ex${i}:ok`) ? 1 : 0);
+    });
+    add('풀이 보기', '확인·제출', '[📖 풀이 보기] 버튼 2개를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+    add('연습장', '활동 완료', '연습장을 열어 식 쓰기 (손글씨 또는 키보드)', 1, f => f.flag(u, 'pad') ? 1 : 0);
+  },
+  'lesson-8-ex:3': (add, u) => {   // 정리와 활용 › 생활 문제: 지구의 바다 넓이 (5점)
+    add('(전체)', '조작', '3D 지구본 조작하기', 1, f => f.anyV(u) ? 1 : 0);
+    add('(공통)', '빈칸 입력', '빈칸 2개(지구의 겉넓이, 바다의 넓이)를 모두 채우기', 1, f => f.flag(u, 'ex0:fill') ? 1 : 0);
+    add('(공통)', '확인·제출', '[📤 제출]한 답이 모두 정답', 1, f => f.flag(u, 'ex0:ok') ? 1 : 0);
+    add('정답 보기', '확인·제출', '[👀 정답 보기] 누르기', 1, f => f.flag(u, 'ex0:sol') ? 1 : 0);
+    add('연습장', '활동 완료', '연습장을 열어 식 쓰기 (손글씨 또는 키보드)', 1, f => f.flag(u, 'pad') ? 1 : 0);
   },
   'lesson-7-sim:2': (add, u) => {   // 기둥의 겉넓이 (개념)
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
