@@ -1136,7 +1136,7 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 /* 6. 뿔의 부피 › 도형 분할: 단계별 탐구 */
 .l6-split-steps{display:flex;flex-direction:column;gap:10px}
 .l6-sstep{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
-.l6-sstep .l6-sq{margin:0 0 8px;font-weight:700;display:flex;gap:8px;align-items:flex-start}
+.l6-sstep .l6-sq{margin:0 0 8px;font-weight:700;display:flex;gap:8px;align-items:flex-start;line-height:1.38}
 .l6-sstep .l6-sq .no{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#FFE0B2;color:#E65100;font-size:.85rem}
 .l6-sopts{display:grid;gap:6px}
 .l6-sopts.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1146,7 +1146,7 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 .l6-sopts .btn.ok{background:#E8F5E9;border-color:#43A047;color:#1B5E20}
 .l6-sopts .btn.ng{background:#FFEBEE;border-color:#E53935;color:#B71C1C}
 .l6-sopts .btn:disabled{opacity:.55}.l6-sopts .btn.ok:disabled{opacity:1}
-.l6-sfb{margin:8px 0 0;font-size:.92rem;line-height:1.5}.l6-sfb:empty{display:none}
+.l6-sfb{margin:8px 0 0;font-size:.92rem;line-height:1.38}.l6-sfb:empty{display:none}
 .l6-sfb .katex-display{margin:0}
 .l6-sfb.ok{color:#1B5E20}.l6-sfb.ng{color:#B71C1C}
 .l6-sdone{background:#FFFDE7;border-color:#FFD54F}
@@ -10566,7 +10566,7 @@ async function l6SetupCubeSplit(wrap){
     { t:'분할한 세 입체도형은 서로 어떤 관계일까?', opts:['크기가 모두 다르다', '두 개만 합동이다', '모양은 같지만 크기가 다르다', '모두 합동이다'], a:3,
       why:'세 사각뿔은 밑면이 모두 정육면체의 면이고 높이가 모두 정육면체의 한 모서리 길이와 같아서 <b>모두 합동</b>이야.' },
     { t:'사각뿔 1개 부피는 정육면체 부피의 몇 배?', opts:[F(1, 2), F(1, 3), F(1, 4), F(1, 6)], a:1,
-      why:`합동인 사각뿔 3개가 정육면체를 꼭 채우니까 사각뿔 1개의 부피는 정육면체 부피의 <b>${F(1, 3)}</b>이야.` },
+      why:'합동인 사각뿔 3개가 정육면체를 꼭 채우니까 사각뿔 1개의 부피는 정육면체 부피의 <b>$\\frac{1}{3}$</b>이야.' },
   ];
   wrap.innerHTML = `
     <div class="l0-gal-grid">
