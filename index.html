@@ -10921,7 +10921,7 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       <div>
         <div class="l1-namebar" hidden><span class="l1-badge big l7-name"></span><span class="l1-badge l7-state">입체</span></div>
         <div class="l7-v"></div>
-        <p class="l7-legend">${opts.thing || '입체도형'}을 펼친 뒤,<br><span class="sw b"></span>밑면 또는 <span class="sw s"></span>옆면을 클릭하면 넓이 계산식이 나와요.</p>
+        <p class="l7-legend">${opts.thing || '입체도형'}을 펼친 뒤,<br><span class="sw b"></span>밑면 또는 <span class="sw s"></span>옆면${shape === 'cone' ? '(또는 호)' : ''}을 클릭하면 ${shape === 'cone' ? '넓이·길이 라벨과 계산식' : '넓이 계산식'}이 나와요.</p>
       </div>
       <div class="l0-side">
         ${opts.choices ? '<div class="l7-choices"></div>' : ''}
@@ -11167,7 +11167,18 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       dims.push(H.dashed(O, R1, 0.03, Cr), H.dot2(O, 0.06, Cr, false), H.tube2(A, R2, 0.025, 0xC62828, false), lr, ll);
       dims.forEach(o => grp.add(o));
     }
-    return { kind:st.shape, sheet, discs, outline, labs, SEG, dims };
+    let arc = null, unf = null;
+    if(st.shape === 'cone'){
+      // 호(부채꼴의 둘레 부분)를 누를 수 있도록 보이지 않는 띠
+      arc = mk(0xffffff, SEG * 6); arc.material.transparent = true; arc.material.opacity = 0; arc.material.depthWrite = false; arc.userData = { kind:'arc' }; grp.add(arc);
+      // 펼쳤을 때: 밑면의 반지름 · 모선의 길이
+      const ls = labS(fl) * 0.8;
+      const lr2 = H.label2(`반지름 ${l7f(d.r)} cm`, new T.Vector3(), ls, false); lr2.material.color.setHex(0xE3F2FD);
+      const ll2 = H.label2(`모선 ${l7f(d.l)} cm`, new T.Vector3(), ls, false); ll2.material.color.setHex(0xE3F2FD);
+      const line = new T.LineSegments(new T.BufferGeometry(), new T.LineDashedMaterial({ color:0x1565C0, dashSize:0.12, gapSize:0.08 }));
+      unf = { lr:lr2, ll:ll2, line }; [lr2, ll2, line].forEach(o => { o.visible = false; grp.add(o); });
+    }
+    return { kind:st.shape, sheet, discs, outline, labs, SEG, dims, arc, unf, shown:new Set() };
   }
   function setTri(mesh, tris){
     const a = mesh.geometry.attributes.position.array; let k = 0;
@@ -11208,12 +11219,25 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       const P = pt(d.l, Th / 2), er = V3(0, 0, 1), alpha = Math.PI + e * (Math.PI / 2 + beta);
       const dir = er.clone().multiplyScalar(Math.cos(alpha)).add(V3(0, Math.sin(alpha), 0)).normalize(), cen = P.clone().addScaledVector(dir, d.r);
       setTri(m.discs[0], discTris(cen, V3(1, 0, 0), dir, d.r, SEG));
-      m.labs.base[0].position.copy(cen).add(V3(0, 0.02, 0));
+      m.labs.base[0].position.copy(cen).add(V3(0, 0.02, e > 0.97 ? 0.4 * d.r : 0));   // 펼쳤을 때 반지름 표시와 겹치지 않게 조금 아래
       m.labs.side.position.copy(pt(d.l * 0.55, Th / 2)).add(V3(0, 0.02, 0)); m.labs.len.position.copy(pt(d.l * 1.08, Th * 0.2)).add(V3(0, 0.05, 0));
+      if(m.arc){ const band = []; for(let i=0;i<SEG;i++){ const s0 = Th * i / SEG, s1 = Th * (i + 1) / SEG, a0 = pt(d.l * 0.86, s0), a1 = pt(d.l * 0.86, s1), b0 = pt(d.l * 1.04, s0), b1 = pt(d.l * 1.04, s1);
+        [a0, a1, b0, b1].forEach(q => q.y += 0.01); band.push(a0, b0, b1, a0, b1, a1); } setTri(m.arc, band); }
+      if(m.unf){
+        const on = e > 0.97, E = cen.clone().add(V3(1, 0, 0).multiplyScalar(d.r)), S0 = pt(d.l, 0);
+        m.unf.line.geometry.setFromPoints([cen.clone().add(V3(0, 0.02, 0)), E.clone().add(V3(0, 0.02, 0))]); m.unf.line.computeLineDistances();
+        m.unf.lr.position.copy(cen.clone().lerp(E, 0.5)).add(V3(0, 0.05, -0.22 * d.r));
+        const mid = S0.clone().multiplyScalar(0.5), outv = V3(S0.z, 0, -S0.x).normalize();
+        m.unf.ll.position.copy(mid).addScaledVector(outv, -0.35).add(V3(0, 0.05, 0));
+        [m.unf.lr, m.unf.ll, m.unf.line].forEach(o => { o.visible = on; });
+      }
       grp.quaternion.identity();
     }
     m.outline.geometry.dispose(); m.outline.geometry = new T.BufferGeometry().setFromPoints(lines);
-    const show = e > 0.92 && (!opts.labelGate || opts.labelGate()); [m.labs.side, m.labs.len, ...m.labs.base].forEach(l => { l.visible = show; });
+    const show = e > 0.92 && (!opts.labelGate || opts.labelGate());
+    if(m.kind === 'cone'){   // 원뿔: 옆면·밑면·호를 누른 것만 라벨 (처음에는 감춤)
+      m.labs.side.visible = show && m.shown.has('side'); m.labs.len.visible = show && m.shown.has('arc'); m.labs.base.forEach(l => { l.visible = show && m.shown.has('base'); });
+    }else [m.labs.side, m.labs.len, ...m.labs.base].forEach(l => { l.visible = show; });
   }
 
   function apply(driveCam){
@@ -11268,15 +11292,17 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       if(!down || Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 7) { down = null; return; } down = null;
       const r = viewer.dom.getBoundingClientRect();
       ray.setFromCamera(new T.Vector2((ev.clientX - r.left) / r.width * 2 - 1, -(ev.clientY - r.top) / r.height * 2 + 1), viewer.camera);
-      const targets = model.kind === 'poly' ? model.meshes : [model.sheet, ...model.discs];
+      const targets = model.kind === 'poly' ? model.meshes : [model.sheet, ...model.discs, ...(model.arc ? [model.arc] : [])];
       const hit = ray.intersectObjects(targets, false)[0]; if(!hit) return;
       if(opts.labelGate && !opts.labelGate()) return;   // 계산 영역을 열기 전에 누른 것은 반영하지 않음
       const obj = hit.object, c = l7Calc(st.shape, st.d);
       if(picked) picked.material.emissive.setHex(0x000000);
       picked = obj; obj.material.emissive.setHex(0x553300);
       if(opts.labelGate && opts.labelGate() && model.kind === 'poly'){ shown.has(obj) ? shown.delete(obj) : shown.add(obj); apply(false); }
+      if(model.kind === 'cone' && l5Ease(st.t) >= 0.92 && (!opts.labelGate || opts.labelGate())){ const kk = obj.userData.kind === 'roundside' ? 'side' : obj.userData.kind; model.shown.has(kk) ? model.shown.delete(kk) : model.shown.add(kk); apply(false); }
       let html;
-      if(obj.userData.kind === 'roundside') html = st.shape === 'cylinder' ? `<b>옆면(직사각형)</b>: (가로) × (세로) = ${c.sideF} (cm²)<br><span class="l0-muted">가로의 길이는 밑면인 원의 둘레와 같아.</span>`
+      if(obj.userData.kind === 'arc') html = `<b>호의 길이</b>: (밑면인 원의 둘레) = 2π × ${l7f(st.d.r)} = ${l7f(2 * st.d.r)}π (cm)<br><span class="l0-muted">부채꼴의 호의 길이는 밑면인 원의 둘레와 같아.</span>`;
+      else if(obj.userData.kind === 'roundside') html = st.shape === 'cylinder' ? `<b>옆면(직사각형)</b>: (가로) × (세로) = ${c.sideF} (cm²)<br><span class="l0-muted">가로의 길이는 밑면인 원의 둘레와 같아.</span>`
         : `<b>옆면(부채꼴)</b>: ${l0Fx('½')} × (반지름) × (호의 길이) = ${c.sideF} (cm²)<br><span class="l0-muted">호의 길이는 밑면인 원의 둘레와 같아.</span>`;
       else if(model.kind !== 'poly') html = `<b>밑면(원)</b>: ${c.baseF} (cm²)`;
       else html = faceFormula(obj.userData.kind, obj.userData.i, c);
@@ -11943,13 +11969,20 @@ function l7SetupRollCone(wrap, onDone){
   const lS = createSlider({ label:'모선의 길이 $l$', min:2, max:8, step:0.5, value:5, unit:' cm', onInput:v => { if(v <= st.r){ lS.set(st.r + 0.5); return; } st.l = v; st.t = st.target = 0; draw(); } });
   $('.l7-rc-sl', wrap).append(rS.el, lS.el); renderMath($('.l7-rc-sl', wrap));
   function draw(){
-    const { r, l, t } = st, Th = 2 * Math.PI * r / l, k = 230 / (l + 2 * r), W = 470, cx = W / 2, cy = 24;
+    const { r, l, t } = st, Th = 2 * Math.PI * r / l;
     const a0 = Math.PI / 2 - Th / 2, a = a0 + Th * t;
+    /* 화면 맞추기: 부채꼴 + 굴러가는 원이 지나는 자리 전체가 들어오도록 (r, l이 바뀔 때만 크기가 바뀜) */
+    let x0b = 0, x1b = 0, y0b = 0, y1b = 0;
+    const grow = (x, y, rr = 0) => { x0b = Math.min(x0b, x - rr); x1b = Math.max(x1b, x + rr); y0b = Math.min(y0b, y - rr); y1b = Math.max(y1b, y + rr); };
+    for(let i = 0; i <= 64; i++){ const g = a0 + Th * i / 64; grow(l * Math.cos(g), l * Math.sin(g)); grow((l + r) * Math.cos(g), (l + r) * Math.sin(g), r); }
+    /* 화면 크기는 고정(470×380), 도형은 r·l 범위 전체에서 라벨까지 온전히 들어오도록 축척·가운데 맞춤 */
+    const PADX = 46, PADY = 30, W = 470, H = 380, k = Math.min((W - 2 * PADX) / (x1b - x0b), (H - 2 * PADY) / (y1b - y0b));
+    const cx = W / 2 - k * (x0b + x1b) / 2, cy = H / 2 - k * (y0b + y1b) / 2;
     const P = (rad, ang) => [cx + k * rad * Math.cos(ang), cy + k * rad * Math.sin(ang)];
     const big = Th > Math.PI ? 1 : 0, [x0, y0] = P(l, a0), [x1, y1] = P(l, a0 + Th), [xa, ya] = P(l, a);
     const [ccx, ccy] = P(l + r, a), phi = a0 + Math.PI + (l + r) / r * (a - a0);
     const mx = ccx + k * r * Math.cos(phi), my = ccy + k * r * Math.sin(phi);
-    const H = cy + k * (l + 2 * r) + 12, traced = t > 0.001 ? `<path d="M${x0} ${y0} A${k * l} ${k * l} 0 ${Th * t > Math.PI ? 1 : 0} 1 ${xa} ${ya}" fill="none" stroke="#2E7D32" stroke-width="6" stroke-linecap="round"/>` : '';
+    const traced = t > 0.001 ? `<path d="M${x0} ${y0} A${k * l} ${k * l} 0 ${Th * t > Math.PI ? 1 : 0} 1 ${xa} ${ya}" fill="none" stroke="#2E7D32" stroke-width="6" stroke-linecap="round"/>` : '';
     // 원 둘레 중 굴러간 부분(같은 길이)
     const rolledArc = t > 0.001 ? (() => { const s0 = a + Math.PI, s1 = s0 + Th * t * l / r; const [p0x, p0y] = [ccx + k * r * Math.cos(s0), ccy + k * r * Math.sin(s0)];
       const sweep = Th * t * l / r; if(sweep >= 2 * Math.PI - 1e-3) return `<circle cx="${ccx}" cy="${ccy}" r="${k * r}" fill="none" stroke="#2E7D32" stroke-width="5"/>`;
