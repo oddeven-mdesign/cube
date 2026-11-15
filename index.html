@@ -1133,6 +1133,15 @@ i.mv{font-family:"Times New Roman",Times,KaTeX_Math,serif;font-style:italic;font
 
 <!-- ===================== 마무리 화면 · 점검 도구 · 인쇄 스타일 ===================== -->
 <style id="finish-style">
+/* 계산기 */
+.calc-pad{margin-top:10px;max-width:340px;border:1.5px solid var(--line);border-radius:14px;padding:10px;background:#FAFBFE}
+.calc-screen{border:1.5px solid var(--line);border-radius:10px;background:#fff;padding:8px 10px;margin-bottom:8px;text-align:right;min-height:58px}
+.calc-expr{font-size:1.2rem;font-weight:700;word-break:break-all}
+.calc-res{font-size:.95rem;color:#1565C0;min-height:1.2em}
+.calc-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.calc-k{justify-content:center;min-height:42px;font-size:1.05rem;font-weight:700}
+.calc-k.op{background:#FFF3E0;border-color:#FFB74D;color:#E65100}
+.calc-k.eq{background:#E65100;border-color:#E65100;color:#fff}
 /* 6. 뿔의 부피 › 도형 분할: 단계별 탐구 */
 .l6-split-steps{display:flex;flex-direction:column;gap:10px}
 .l6-sstep{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
@@ -10947,7 +10956,7 @@ async function createNetUnfolder(container, shape, dims, opts={}){
 
   function dimsUI(){
     const box = $('.l7-dims', container);
-    box.innerHTML = `<b>${(typeof opts.dimsTitle === 'function' ? opts.dimsTitle(st) : opts.dimsTitle) || '📏 치수 (cm)'}</b><div class="l7-dim-grid">${L7_DIMS[st.shape].map(f => `<label><span>${f.label}</span><input type="number" inputmode="decimal" min="${f.min}" max="${f.max}" step="0.5" value="${st.d[f.k]}" data-k="${f.k}"></label>`).join('')}</div><p class="l7-dim-msg"></p>`;
+    box.innerHTML = `<b>${(typeof opts.dimsTitle === 'function' ? opts.dimsTitle(st) : opts.dimsTitle) || '📏 도형의 크기 (cm)'}</b><div class="l7-dim-grid">${L7_DIMS[st.shape].map(f => `<label><span>${f.label}</span><input type="number" inputmode="decimal" min="${f.min}" max="${f.max}" step="0.5" value="${st.d[f.k]}" data-k="${f.k}"></label>`).join('')}</div><p class="l7-dim-msg"></p>`;
     box.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {   // 입력하는 대로 3D 화면에 반영
       clearTimeout(inp._t); inp._t = setTimeout(() => {
         const f = L7_DIMS[st.shape].find(x => x.k === inp.dataset.k), v = parseFloat(inp.value);
@@ -10955,7 +10964,7 @@ async function createNetUnfolder(container, shape, dims, opts={}){
         const nd = { ...st.d, [f.k]:v };
         if(st.shape === 'cone' && nd.l <= nd.r) return;
         if(st.shape === 'regpyramid'){ const inr = nd.a / (2 * Math.tan(Math.PI / (nd.n || 4))); if(nd.s <= inr + 0.05) return; }
-        $('.l7-dim-msg', box).textContent = ''; st.d = nd; build();
+        $('.l7-dim-msg', box).textContent = ''; st.d = nd; build(); clsElFlag(container, 'size:' + st.key);
       }, 350);
     }));
     box.querySelectorAll('input').forEach(inp => inp.addEventListener('change', () => {
@@ -10966,7 +10975,7 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       const nd = { ...st.d, [f.k]:v };
       if(st.shape === 'cone' && nd.l <= nd.r){ msg.textContent = '⚠️ 모선의 길이는 밑면의 반지름보다 길어야 해.'; inp.value = st.d[f.k]; return; }
       if(st.shape === 'regpyramid'){ const inr = nd.a / (2 * Math.tan(Math.PI / (nd.n || 4))); if(nd.s <= inr + 0.05){ msg.textContent = `⚠️ 옆면 삼각형의 높이가 너무 낮아서 뿔을 만들 수 없어. ${l7f(inr)} cm보다 크게 해 보자.`; inp.value = st.d[f.k]; return; } }
-      msg.textContent = ''; st.d = nd; build();
+      msg.textContent = ''; st.d = nd; build(); clsElFlag(container, 'size:' + st.key);
     }));
   }
 
@@ -11273,6 +11282,9 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       else html = faceFormula(obj.userData.kind, obj.userData.i, c);
       if(l5Ease(st.t) < 0.92){ faceInit(); viewer.requestRender(); return; }   // 펼친 상태에서만 계산식
       faceBox.classList.remove('init'); faceBox.innerHTML = `👆 ${html}`; viewer.requestRender();
+      if(!opts.labelGate || opts.labelGate()){   // 활동 점수: 펼친 상태에서 모든 면의 넓이 라벨(계산식)을 한 번씩 보기
+        const seenF = st.seenF || (st.seenF = {}), k = st.key, S = seenF[k] || (seenF[k] = new Set()); S.add(targets.indexOf(obj));
+        if(S.size >= targets.length) clsElFlag(container, 'lab:' + k); }
     });
   }
   function infoText(c){
@@ -11305,6 +11317,8 @@ async function createNetUnfolder(container, shape, dims, opts={}){
       rows.forEach(([k]) => { const td = box.querySelector(`td[data-k="${k}"]`), v = $('input', td).value, ok = l7Check(v, cc[k]);
         td.classList.toggle('ok', ok); td.classList.toggle('ng', !ok && !!v.trim()); $('.mk', td).textContent = v.trim() ? (ok ? '✓' : '✗') : ''; if(ok) right++; });
       const fb = $('.l7-tfb', box);
+      if(rows.every(([k]) => box.querySelector(`td[data-k="${k}"] input`).value.trim())) clsElFlag(container, 'fill:' + st.key);   // 활동 점수: 빈칸 모두 채우고 확인
+      if(right === 3) clsElFlag(container, 'ok:' + st.key);
       if(right === 3){ fb.className = 'l7-tfb ok'; fb.innerHTML = '🎉 세 칸 모두 정답!'; api.solved.add(key); opts.onSolved && opts.onSolved(st.key); }
       else { fb.className = 'l7-tfb ng'; fb.innerHTML = `3칸 중 ${right}칸 정답! 전개도를 펼치고 면을 눌러 계산식을 확인해 보자.`; }
     });
@@ -11678,6 +11692,8 @@ async function l7SetupA(panel, done){
     { onSolved:() => mark(0), steps:['(밑넓이) $= \\dfrac{1}{2} \\times 4 \\times 3 = 6\\,(\\text{cm}^2)$', '(옆넓이) $= (3 + 4 + 5) \\times 6 = 72\\,(\\text{cm}^2)$', '(겉넓이) $= 6 \\times 2 + 72 = 84\\,(\\text{cm}^2)$'] });
   l7Rows($('.l7-ex2', panel), [{ label:'밑넓이', v:l7val(16, true) }, { label:'옆넓이', v:l7val(72, true) }, { label:'겉넓이', v:l7val(104, true) }],
     { onSolved:() => mark(1), steps:['(밑넓이) $= \\pi \\times 4^2 = 16\\pi\\,(\\text{cm}^2)$', '(옆넓이) $= (2\\pi \\times 4) \\times 9 = 72\\pi\\,(\\text{cm}^2)$', '(겉넓이) $= 16\\pi \\times 2 + 72\\pi = 104\\pi\\,(\\text{cm}^2)$'] });
+  // 예제 연습장·계산기: 두 예제 아래 줄 왼쪽에
+  { const g = $('.l7-exgrid', panel), row = el('div', { class:'sim-row l8-pad-row' }); g.after(row); addScratchpad(row, { toggleIn:row }); addCalculator(row); }
   const attachCalc = l7AttachCalc;
   const gBox = { open:false }, gPrism = { open:false };
   const boxP = createNetUnfolder($('.l7-box', panel), 'rectprism', { a:4, b:3, h:2 }, { dimsTitle:'📦 상자의 크기 (cm)', labelGate:() => gBox.open, heightName:'상자 높이', thing:'상자' });
@@ -11786,6 +11802,8 @@ async function l7SetupRoller(wrap, onSolved){
     else $('[data-a="ck"]', c).addEventListener('click', () => {
       if(c.classList.contains('locked')) return;
       const ok = s.inputs.every(([, v], k) => { const inp = c.querySelector(`input[data-k="${k}"]`), good = l7Check(inp.value, v); inp.classList.toggle('is-correct', good); inp.classList.toggle('is-wrong', !good); return good; });
+      if(i === STEPS.length - 1 && [...c.querySelectorAll('input')].every(x => x.value.trim())) clsElFlag(wrap, 'all');   // 활동 점수: 마지막 질문까지 답하기
+      if(i === STEPS.length - 1 && ok) clsElFlag(wrap, 'ok');
       ok ? pass(i) : fail(i, '✗ 표시된 칸을 다시 계산해 보자.'.replace(/^✗ /, ''));
     });
   });
@@ -13887,6 +13905,34 @@ function setupTextbookFont(){
 /* =====================================================================
    확인 퀴즈 연습장 (5~8 학습): 손글씨(펜·지우개) + 키보드로 식 쓰기, 열고 닫기
    ===================================================================== */
+/** 계산기: 버튼 줄(row)에 [🧮 계산기 열기]를 넣고, 누르면 줄 아래에 계산기가 열린다 */
+function addCalculator(row){
+  if(!row || row._calc) return;
+  const panel = el('div', { class:'calc-pad', hidden:true }, `
+    <div class="calc-screen"><div class="calc-expr" aria-live="polite">0</div><div class="calc-res"></div></div>
+    <div class="calc-keys">${['7', '8', '9', '÷', '4', '5', '6', '×', '1', '2', '3', '−', '0', '.', '(', ')', 'C', '⌫', '=', '+']
+      .map(k => `<button type="button" class="btn calc-k${/[÷×−+=]/.test(k) ? ' op' : ''}${k === '=' ? ' eq' : ''}" data-k="${k}">${k}</button>`).join('')}</div>`);
+  row.after(panel); row._calc = panel;
+  const tg = el('button', { class:'btn calc-toggle', type:'button', 'aria-expanded':'false' }, '🧮 계산기 열기');
+  const pt = row.querySelector('.scratch-toggle'); pt ? pt.after(tg) : row.prepend(tg);
+  tg.addEventListener('click', () => { panel.hidden = !panel.hidden; tg.setAttribute('aria-expanded', String(!panel.hidden)); tg.textContent = panel.hidden ? '🧮 계산기 열기' : '🙈 계산기 닫기'; });
+  let ex = '';
+  const exprEl = $('.calc-expr', panel), resEl = $('.calc-res', panel);
+  const show = () => { exprEl.textContent = ex || '0'; };
+  const calc = () => {
+    const js = ex.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+    if(!js || /[^0-9+\-*/().]/.test(js)) return null;
+    try{ const v = Function(`"use strict";return (${js})`)(); return typeof v === 'number' && isFinite(v) ? Math.round(v * 1e8) / 1e8 : null; }catch(e){ return null; }
+  };
+  panel.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.k;
+    if(k === 'C'){ ex = ''; resEl.textContent = ''; }
+    else if(k === '⌫') ex = ex.slice(0, -1);
+    else if(k === '='){ const v = calc(); if(v == null){ resEl.textContent = '⚠️ 식을 다시 확인해 보자.'; } else { resEl.textContent = `= ${v}`; ex = String(v); } }
+    else { if(resEl.textContent.startsWith('=') && /[0-9.(]/.test(k)) ex = ''; resEl.textContent = ''; ex += k; }
+    show();
+  }));
+}
 function addScratchpad(quizBody, opts = {}){
   if(!quizBody || quizBody._pad) return;
   const wrap = el('div', { class:'scratch' }, `
@@ -14934,6 +14980,40 @@ const CLS_SCORE_CUSTOM = {
     add('(전체)', '탐색', '활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
     add('(공통)', '선택 문제', '3D 화면을 조작하고 선택 문제(몇 번 부어야 할까?)에 답하기', 1, f => f.views(u, -1) >= 1 && f.groups(u) >= 1 ? 1 : 0);
   },
+  'lesson-7-sim:0': (add, u) => {   // 기둥 겉넓이 › 생각 열기: 상자 포장지
+    add('(전체)', '탐색·조작', '기능 버튼 2개(📂 펼치기, 🧮 포장지 넓이 계산하기), 슬라이더, 3D 화면을 모두 탐색·조작하기', 1,
+      f => f.btn(u, '-1:📂 펼치기') && f.btn(u, '-1:🧮 포장지 넓이 계산하기') && f.sliders(u, -1) >= 1 && f.views(u, -1) >= 1 ? 1 : 0);
+    add('넓이 계산표', '빈칸 입력', '빈칸 3개를 모두 채우고 [✓ 확인] 누르기', 1, f => f.flags(u, 'fill:') ? 1 : 0);
+    add('넓이 계산표', '확인·제출', '빈칸 3개가 모두 정답', 1, f => f.flags(u, 'ok:') ? 1 : 0);
+    add('상자의 크기', '조작', '상자의 크기(가로·세로·높이) 바꾸기', 1, f => f.flags(u, 'size:') ? 1 : 0);
+  },
+  'lesson-7-sim:1': (add, u, c) => {   // 기둥 겉넓이 › 시뮬레이션: 기둥 전개도
+    const D = c.det || [];
+    const parts = (f, i) => [f.sliders(u, i) >= 1 && f.views(u, i) >= 1, f.flag(u, 'size:' + D[i]), f.flag(u, 'fill:' + D[i]), f.flag(u, 'ok:' + D[i]), f.flag(u, 'lab:' + D[i])];
+    const best = f => Math.max(0, ...D.map((_, i) => parts(f, i).filter(Boolean).length));
+    const full = f => D.filter((_, i) => parts(f, i).every(Boolean)).length;
+    add('도형 1개', '활동 완료', `${D.join('·')} 중 한 도형에서 ①3D 화면·슬라이더 조작 ②도형의 크기 바꾸기 ③[🧮 겉넓이 계산하기]를 눌러 빈칸 모두 채우기 ④빈칸 모두 정답 ⑤펼친 3D 화면에서 모든 면의 넓이 라벨 보기 — 1가지마다 1점`, 5, f => best(f));
+    add('도형 2개 이상', '활동 완료', '①~⑤를 모두 마친 도형이 2개 이상', 1, f => full(f) >= 2 ? 1 : 0);
+    add('모든 도형', '활동 완료', `①~⑤를 모두 마친 도형이 ${D.length}개 모두`, 1, f => full(f) >= D.length ? 1 : 0);
+  },
+  'lesson-7-sim:2': (add, u) => {   // 기둥의 겉넓이 (개념)
+    add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('(공통)', '활동 완료', '[✏️ 개념 확인하기]를 눌러 빈칸(단어 카드)을 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
+  },
+  'lesson-7-sim:3': (add, u) => {   // 겉넓이 계산 (예제)
+    [['삼각기둥 문제', 0], ['원기둥 문제', 1]].forEach(([nm, i]) => {
+      add(nm, '빈칸 입력', '빈칸 3개를 모두 입력하고 [📤 제출] 누르기', 1, f => f.flag(u, `ex${i}:sub`) ? 1 : 0);
+      add(nm, '확인·제출', '제출한 답이 모두 정답', 1, f => f.flag(u, `ex${i}:ok`) ? 1 : 0);
+    });
+    add('정답 보기', '확인·제출', '[👀 정답 보기] 버튼 2개를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+    add('연습장', '활동 완료', '연습장을 열어 식 쓰기 (손글씨 또는 키보드)', 1, f => f.flag(u, 'pad') ? 1 : 0);
+  },
+  'lesson-7-sim:4': (add, u) => {   // 생활 문제: 페인트 롤러
+    add('(전체)', '탐색·조작', '[🎨 한 바퀴 굴리기] 버튼, 슬라이더, 3D 화면을 모두 탐색·조작하기', 1,
+      f => f.btn(u, '-1:🎨 한 바퀴 굴리기') && f.sliders(u, -1) >= 1 && f.views(u, -1) >= 1 ? 1 : 0);
+    add('질문 5개', '활동 완료', '5개 질문의 선택과 빈칸 입력을 모두 마치기', 2, f => f.flag(u, 'all') ? 2 : 0);
+    add('질문 5개', '확인·제출', '빈칸이 모두 정답', 1, f => f.flag(u, 'ok') ? 1 : 0);
+  },
   'lesson-1-sim:0': (add, u) => {   // 각뿔대
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
     add('(공통)', '확인·제출', '[✏️ 개념 확인하기] 버튼 누르기', 1, f => f.checked(u, '✏️ 개념 확인하기') ? 1 : 0);
@@ -15065,6 +15145,7 @@ function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name)
 function clsExHit(box, kind){ try{ const u = clsUnitOf(box); if(!u) return; const i = [...u.root.querySelectorAll('.l7-rows')].indexOf(box);
   if(kind === 'ok') clsFlagHit(u.key, `ex${i}:sub`); clsFlagHit(u.key, `ex${i}:${kind}`); }catch(e){} }
 function clsPadHit(wrap){ try{ const u = wrap && clsUnitOf(wrap); if(u) clsFlagHit(u.key, 'pad'); }catch(e){} }
+function clsElFlag(elm, name){ try{ const u = elm && clsUnitOf(elm); if(u) clsFlagHit(u.key, name); }catch(e){} }
 function clsWordHit(sec){ try{ const u = sec && clsUnitOf(sec); if(u) clsFlagHit(u.key, 'word'); }catch(e){} }
 /* 이 기기에 남은 단어 카드 완료 기록도 점수에 넣기 */
 setTimeout(() => { if(!isStudent()) return; if(safeStorage.get('ipche-l1-frustum') === '1') clsFlagHit('lesson-1-sim:0', 'word');
