@@ -14774,6 +14774,27 @@ function clsScoreCalc(pg){
     crit.push({ level:'세부활동', lesson:x.lesson, step:x.step, sub:x.sub, det:x.det, kind:x.kind, crit:x.crit }); });
   return { total:T[0], max:T[1], cols, maxes:max, got:val, crit };
 }
+/** 활동 구성표 (구글 시트 '활동 구성' 탭) */
+const CLS_SCORE_NOTE = {
+  'lesson-3-sim:0|도형 6':'그림만 있는 버튼이라 이름을 임시로 붙임 (직접 그리기 안의 보조 버튼인지 확인 필요)',
+  'lesson-3-sim:0|도형 7':'그림만 있는 버튼이라 이름을 임시로 붙임 (직접 그리기 안의 보조 버튼인지 확인 필요)',
+  'lesson-3-sim:0|도형 8':'그림만 있는 버튼이라 이름을 임시로 붙임 (직접 그리기 안의 보조 버튼인지 확인 필요)',
+  'lesson-1-sim:3|[✓ 확인하기] 버튼 누르기':'[✓ 확인]과 같은 역할이면 하나로 합칠 수 있음',
+};
+function clsComposition(){
+  const KINDS = ['탐색', '조작', '선택 문제', '빈칸 입력', '확인·제출', '활동 완료', '퀴즈'];
+  const head = ['번호', '주제', '활동', '소활동', '세부활동', '활동 종류', '활동 완료 기준', '배점', '활동 점수 탭의 열 이름', '비고'];
+  const r = clsScoreCalc({}), leafCols = r.cols.filter(c => c.startsWith('[세부]'));
+  const rows = CLS_SCORE_LEAVES.map((x, i) => [i + 1, x.lesson, x.step, x.sub || '(소활동 없음)', x.det, x.kind, x.crit, x.max, leafCols[i] || '',
+    CLS_SCORE_NOTE[`${x.u.key}|${x.det}`] || CLS_SCORE_NOTE[`${x.u.key}|${x.crit}`] || '']);
+  const summary = [['주제', ...KINDS, '합계']];
+  const tot = KINDS.map(() => 0);
+  CLS_CATALOG.forEach(L => { const ls = CLS_SCORE_LEAVES.filter(x => x.u.lesson === L.id);
+    const v = KINDS.map((k, j) => { const n = ls.filter(x => x.kind === k).reduce((a, x) => a + x.max, 0); tot[j] += n; return n; });
+    summary.push([L.title, ...v, v.reduce((a, b) => a + b, 0)]); });
+  summary.push(['전체', ...tot, tot.reduce((a, b) => a + b, 0)]);
+  return { action:'composition', auth:clsPwHash(), head, rows, summary, widths:[48, 150, 140, 190, 170, 80, 300, 48, 280, 260] };
+}
 /* --- 학생 화면: 조작·선택·확인 버튼 기록 --- */
 function clsActAdd(unit, kind, v){
   if(!unit) return false; const k = unit + '|' + kind, a = cls.act[k] || [];
@@ -14845,7 +14866,7 @@ async function clsOpenMonitor(){
     </div>
     <div class="mon-wrap"><p class="l0-muted">⏳ 학생 정보를 불러오는 중…</p></div>
     <p class="l0-muted cls-note">학생 화면이 소활동을 옮길 때마다, 그리고 30초마다 알려 와요. 이 화면은 10초마다 저절로 새로 고침돼요. 마친 소활동은 다른 소활동으로 넘어갈 때 기록돼요.</p>
-    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="manage">⚙️ 수업 관리</button><button class="btn" type="button" data-a="score" title="구글 시트의 '누적 데이터'(이어하기 데이터)로 모든 학생의 활동 점수를 다시 계산해 '활동 점수' 탭에 써요">🧮 활동 점수 다시 계산</button><button class="btn" type="button" data-a="clear" title="새 수업을 시작할 때 이전 학생 목록을 비워요">🧹 학생 목록 비우기</button></div>`, 'cls-admin cls-monitor');
+    <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="manage">⚙️ 수업 관리</button><button class="btn" type="button" data-a="comp" title="구글 시트에 '활동 구성' 탭을 만들어 세부활동·완료 기준·배점을 정리해요">📋 활동 구성표 만들기</button><button class="btn" type="button" data-a="score" title="구글 시트의 '누적 데이터'(이어하기 데이터)로 모든 학생의 활동 점수를 다시 계산해 '활동 점수' 탭에 써요">🧮 활동 점수 다시 계산</button><button class="btn" type="button" data-a="clear" title="새 수업을 시작할 때 이전 학생 목록을 비워요">🧹 학생 목록 비우기</button></div>`, 'cls-admin cls-monitor');
   const vs = $('[data-f="view"]', m); vs.value = CLS_MON.view || 'lesson-0';
   const wrap = $('.mon-wrap', m), upd = $('.mon-upd', m);
   let data = null;
@@ -14913,6 +14934,14 @@ async function clsOpenMonitor(){
     catch(e){ try{ await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body }); }catch(e2){} }
     toast('🧹 학생 목록을 비웠어요.'); load();
   }, '목록 비우기'));
+  $('[data-a="comp"]', m).addEventListener('click', async e => {
+    const btn = e.currentTarget, url = clsUrl(); if(!url){ toast('구글 시트 주소가 없어요.'); return; }
+    btn.disabled = true;
+    try{ await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify(clsComposition()) });
+      toast(`📋 구글 시트에 '활동 구성' 탭을 만들었어요. (${CLS_SCORE_LEAVES.length}개 기준)`); }
+    catch(err){ toast('⚠️ 인터넷 연결 또는 구글 시트 주소를 확인해 주세요.'); }
+    finally{ btn.disabled = false; }
+  });
   $('[data-a="score"]', m).addEventListener('click', async e => {
     const btn = e.currentTarget, url = clsUrl(); if(!url){ toast('구글 시트 주소가 없어요.'); return; }
     btn.disabled = true; const t0 = btn.textContent; btn.textContent = '⏳ 계산 중…';
@@ -14926,6 +14955,7 @@ async function clsOpenMonitor(){
       const items = list.map(x => { const r = clsScoreCalc(x.progress || {}); head = head || r; return { sid:x.sid, name:x.name, total:r.total, got:r.got }; });
       const body = JSON.stringify({ action:'scores', items, cols:head.cols, max:head.maxes, maxTotal:head.max, crit:head.crit });
       await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body });
+      await fetch(url, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify(clsComposition()) });
       toast(`🧮 학생 ${items.length}명의 활동 점수를 '활동 점수' 탭에 기록했어요.`);
     }catch(err){ toast('⚠️ ' + (err.message || '활동 점수를 계산하지 못했어요.')); }
     finally{ btn.disabled = false; btn.textContent = t0; }
@@ -14957,7 +14987,7 @@ if(startHash === '#finish' && allLessonsDone()) showFinish();
 clsStart();   // 첫 화면(학생·관리자) / 이어서 진행
 
 /* 다음 단계에서 콘솔·다른 스크립트로 쓰기 쉽게 내보내기 */
-Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys, CLS_UNITS, clsSecKey, clsOwn, CLS_OWN, clsFields, LESSON_CONTENT, clsScoreCalc, CLS_SCORE_LEAVES }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
+Object.assign(window, { __clsDbg:{ CLS_DETAIL, clsSecKey, clsDetailBtns, clsDetailGroup, clsCardDone, CLS_TASKS, collectLessonSteps, clsCurKey, clsDoneKeys, CLS_UNITS, clsSecKey, clsOwn, CLS_OWN, clsFields, LESSON_CONTENT, clsScoreCalc, CLS_SCORE_LEAVES, clsComposition }, create3DViewer, createQuiz, createSlider, createStepper, createPlayButton, createSegmented,
   completeLesson, goTo, renderMath, LESSON_CONTENT, LESSONS, normalizeAnswer, isInputCorrect, auditSolidCounts, countSolid, showFinish, showSolidAudit });
 </script>
 </body>

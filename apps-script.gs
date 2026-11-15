@@ -9,6 +9,8 @@
  *   3) 수업설정    : 관리자가 [수업 관리]에서 저장한 잠금·통제 설정 (학생 화면이 10초마다 읽어 감)
  *   4) 활동 점수    : 학번·이름마다 한 줄. 주제 › 활동 › 소활동 › 세부활동별 점수 (2번째 줄 = 만점)
  *   5) 활동 점수 기준 : 점수 칸마다 활동 종류·완료 기준·배점 (웹앱이 보내 준 기준표로 자동 작성)
+ *   6) 활동 구성    : 주제 › 활동 › 소활동 › 세부활동별 완료 기준과 배점 표 + 주제별 배점 합계
+ *                    (관리자 [📊 모니터링] → [📋 활동 구성표 만들기] 또는 [🧮 활동 점수 다시 계산]을 누르면 작성)
  *   ※ 모니터링     : 학생 화면이 '지금 하는 소활동·마친 소활동'을 알려 오면 캐시에 잠시(6시간) 보관 → 관리자 [📊 모니터링]이 읽어 감
  *                    (시트에 쓰지 않으므로 빠르고, 기록 저장과 서로 기다리지 않음)
  *
@@ -29,6 +31,7 @@ const SHEET_BEST = '누적 데이터';   // 학번·이름마다 한 줄, 가장
 const SHEET_CFG = '수업설정';
 const SHEET_SCORE = '활동 점수';
 const SHEET_SCORE_STD = '활동 점수 기준';
+const SHEET_COMP = '활동 구성';
 const SCORE_FIXED = ['학번', '이름', '갱신 시각', '총점', '만점', '달성률(%)'];
 const DEFAULT_PW_HASH = '445cf6a7';   // 처음 비밀번호(1234)를 웹앱과 같은 방식으로 바꾼 값 — 아래 hashPw_('1234')와 같다
 
@@ -50,6 +53,7 @@ function doPost(e) {
     if (data.action === 'record') return json_(saveRecord_(data));
     if (data.action === 'config') return json_(saveConfig_(data));
     if (data.action === 'scores') return json_(saveScores_(data));
+    if (data.action === 'composition') return json_(saveComposition_(data));
     return json_({ ok: false, error: 'unknown action' });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -338,6 +342,37 @@ function writeScoreStd_(ss, cols, max, crit) {
   if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
   sh.setFrozenRows(1);
   props.setProperty('scoreStdSig', sig);
+}
+/** 활동 구성 탭: { auth, head, rows, kinds, summary:[[주제, 종류별…, 합계]] } */
+function saveComposition_(d) {
+  if (!monAuth_(d.auth)) return { ok: false, error: '관리자 비밀번호가 맞지 않아요.' };
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET_COMP); if (!sh) sh = ss.insertSheet(SHEET_COMP);
+  sh.clear();
+  const head = d.head || [], rows = d.rows || [], W = head.length;
+  sh.getRange(1, 1, 1, W).setValues([head]).setFontWeight('bold').setBackground('#FFE0B2').setHorizontalAlignment('center');
+  if (rows.length) sh.getRange(2, 1, rows.length, W).setValues(rows).setVerticalAlignment('middle');
+  // 주제마다 번갈아 연한 색
+  const bg = ['#FFFFFF', '#F3F6FB']; let k = 0, start = 2;
+  for (let i = 1; i <= rows.length; i++) {
+    if (i === rows.length || rows[i][1] !== rows[i - 1][1]) { sh.getRange(start, 1, i + 2 - start, W).setBackground(bg[k % 2]); k++; start = i + 2; }
+  }
+  sh.setFrozenRows(1);
+  if (sh.getFilter()) sh.getFilter().remove();
+  if (rows.length) sh.getRange(1, 1, rows.length + 1, W).createFilter();
+  // 주제별 배점 합계
+  const sum = d.summary || [];
+  if (sum.length) {
+    const r0 = rows.length + 4, sw = sum[0].length;
+    sh.getRange(r0 - 1, 1).setValue('▶ 주제별 배점 합계 (활동 종류별)').setFontWeight('bold');
+    sh.getRange(r0, 1, sum.length, sw).setValues(sum);
+    sh.getRange(r0, 1, 1, sw).setFontWeight('bold').setBackground('#FFE0B2');
+    sh.getRange(r0 + sum.length - 1, 1, 1, sw).setFontWeight('bold').setBackground('#FFF3E0');
+  }
+  const widths = d.widths || [];
+  widths.forEach(function (w, i) { if (w) sh.setColumnWidth(i + 1, w); });
+  sh.getRange(2, 1, Math.max(rows.length, 1), W).setWrap(true);
+  return { ok: true, rows: rows.length };
 }
 /** 관리자 '활동 점수 다시 계산'용: 학생마다 이어하기 데이터 */
 function allProgress_(auth) {
