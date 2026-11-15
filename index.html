@@ -11452,6 +11452,7 @@ function l7Rows(box, rows, { onSolved, steps, title, solAfter = false, solLabel 
   renderMath(box);
   let solved = false;
   const fb = $('.l7-tfb', box);
+  box.addEventListener('input', () => { if([...box.querySelectorAll('.l7-row input')].every(x => x.value.trim())) clsExHit(box, 'fill'); });   // 활동 점수: 빈칸 모두 채우기
   if(fbBelow){ box.classList.add('fb-below'); $('.l7-rows-btns', box).after(fb); }   // 피드백 글상자는 제출 버튼 아래
   $('[data-a="ck"]', box).addEventListener('click', () => {
     let right = 0; const sb0 = steps && $('[data-a="sol"]', box); if(sb0) sb0.disabled = false;
@@ -11939,7 +11940,7 @@ async function l7SetupB(panel, done){
   {   // 전개도의 주요 길이 빈칸 4개 → 두 가지 방법 열기
     const nb = $('.l7-fr-netbox', panel), fb = $('.l7-blank-fb', nb), ins = [...nb.querySelectorAll('.l7-blank input')]; let opened = false;
     const test = () => {
-      let ok = 0;
+      let ok = 0; if(ins.every(i => i.value.trim())) clsElFlag(nb, 'net');   // 활동 점수: 전개도 빈칸 4개 모두 채우기
       ins.forEach(inp => { const a = inp.dataset.ans, good = l7Check(inp.value, a.includes('π') ? l7val(parseFloat(a) || 1, true) : l7val(+a));
         inp.closest('.l7-blank').classList.toggle('ok', good); inp.closest('.l7-blank').classList.toggle('ng', !good && !!inp.value.trim()); if(good) ok++; });
       if(ok === ins.length){ fb.className = 'l7-blank-fb ok'; fb.textContent = '✓ 전개도 완성! 이제 두 가지 방법으로 겉넓이를 구해 보자.';
@@ -11954,7 +11955,9 @@ async function l7SetupB(panel, done){
   l7Rows($('.l7-fr2', panel), [{ label:'큰 원뿔의 겉넓이', v:l7val(126, true) }, { label:'작은 원뿔의 겉넓이', v:l7val(14, true) }, { label:'단면의 넓이', v:l7val(4, true) }, { label:'원뿔대의 겉넓이', v:l7val(120, true) }],
     { onSolved:() => { w2 = true; finish(); }, fbBelow:true, steps:['(큰 원뿔의 겉넓이) $= \\pi \\times 6^2 + \\pi \\times 6 \\times 15 = 36\\pi + 90\\pi = 126\\pi\\,(\\text{cm}^2)$', '(작은 원뿔의 겉넓이) $= \\pi \\times 2^2 + \\pi \\times 2 \\times 5 = 4\\pi + 10\\pi = 14\\pi\\,(\\text{cm}^2)$', '(단면의 넓이) $= \\pi \\times 2^2 = 4\\pi\\,(\\text{cm}^2)$ ← 작은 원뿔의 밑면은 원뿔대에 없고, 원뿔대의 위 밑면은 큰 원뿔에 없으니 두 번 더해', '(겉넓이) $= 126\\pi - 14\\pi + 4\\pi \\times 2 = 120\\pi\\,(\\text{cm}^2)$'] });
   // 계산기: 겉넓이 계산 · 생활 문제 · 도전 문제
-  [$('.l7-exgrid', panel), $('.l7-hat-ex', panel), $('.l7-two', panel)].forEach(g => { if(!g) return; const row = el('div', { class:'sim-row l8-pad-row l7-calc-row' }); g.after(row); addCalculator(row); });
+  [$('.l7-exgrid', panel), $('.l7-hat-ex', panel), $('.l7-two', panel)].forEach((g, k) => { if(!g) return; const row = el('div', { class:'sim-row l8-pad-row l7-calc-row' }); g.after(row);
+    if(k === 0) addScratchpad(row, { toggleIn:row });   // 겉넓이 계산: 연습장 + 계산기
+    addCalculator(row); });
   l7SetupRollCone($('.l7-rollcone', panel), () => { const c = $('.l7-cone', panel); c && c._exploreDone && c._exploreDone(); });
   const gPyr = { open:false };
   const PYRN = { 3:'삼각뿔', 4:'사각뿔', 5:'오각뿔' };
@@ -11984,8 +11987,8 @@ function l7SetupRollCone(wrap, onDone){
   renderMath(sum);
   // 3D 원뿔 라벨과 같은 모양의 길이 표시
   const tag = (x, y, t) => { const w = t.length * 7.4 + 14; return `<g><rect x="${x - w / 2}" y="${y - 11}" width="${w}" height="22" rx="6" fill="#E3F2FD" stroke="#2B3A55" stroke-width="1.6"/><text x="${x}" y="${y + 4.5}" text-anchor="middle" style="text-anchor:middle;font:700 13px Pretendard,sans-serif;fill:#1F2A44">${t}</text></g>`; };
-  const rS = createSlider({ label:'밑면의 반지름 $r$', min:1, max:3, step:0.5, value:2, unit:' cm', onInput:v => { st.r = v; if(st.l <= v + 0.5) { st.l = v + 1; lS.set(st.l); } st.t = st.target = 0; draw(); } });
-  const lS = createSlider({ label:'모선의 길이 $l$', min:2, max:8, step:0.5, value:5, unit:' cm', onInput:v => { if(v <= st.r){ lS.set(st.r + 0.5); return; } st.l = v; st.t = st.target = 0; draw(); } });
+  const rS = createSlider({ label:'밑면의 반지름 $r$', min:1, max:3, step:0.5, value:2, unit:' cm', onInput:v => { clsElFlag(wrap, 'rc:r'); st.r = v; if(st.l <= v + 0.5) { st.l = v + 1; lS.set(st.l); } st.t = st.target = 0; draw(); } });
+  const lS = createSlider({ label:'모선의 길이 $l$', min:2, max:8, step:0.5, value:5, unit:' cm', onInput:v => { clsElFlag(wrap, 'rc:l'); if(v <= st.r){ lS.set(st.r + 0.5); return; } st.l = v; st.t = st.target = 0; draw(); } });
   $('.l7-rc-sl', wrap).append(rS.el, lS.el); renderMath($('.l7-rc-sl', wrap));
   function draw(){
     const { r, l, t } = st, Th = 2 * Math.PI * r / l;
@@ -12063,7 +12066,7 @@ function setupLesson7Sim(container){
   const a = l7SetupA(pA, () => finish('A')).then(c => { ctrl.A = c; const nx = $('.l7-next', pA); if(nx) nx.remove(); });
   const b = l7SetupB(pB, () => finish('B')).then(c => { ctrl.B = c; setupSubTabs(pB);
     // 계산기 버튼·계산기는 문제 상자(.l0-actbox) 밖 아래로
-    pB.querySelectorAll('.l7-calc-row').forEach(row => { const box = row.closest('.l0-actbox'); if(!box) return; box.after(row); if(row._calc) row.after(row._calc); }); alignActionButtons(document.getElementById('lesson-7')); });
+    pB.querySelectorAll('.l7-calc-row').forEach(row => { const box = row.closest('.l0-actbox'); if(!box) return; box.after(row); let last = row; [row._calc, row._pad].forEach(n => { if(n){ last.after(n); last = n; } }); }); alignActionButtons(document.getElementById('lesson-7')); });
   return Promise.all([a, b]);
 }
 
@@ -15057,6 +15060,38 @@ const CLS_SCORE_CUSTOM = {
     const full = f => D.filter((_, i) => parts(f, i).every(Boolean)).length;
     add('도형 1개', '활동 완료', `${D.join('·')} 중 한 도형에서 ①3D 화면·슬라이더·[📂 펼치기] 조작 ②도형의 크기 바꾸기 ③[🧮 겉넓이 계산하기]를 눌러 빈칸 모두 채우기 ④빈칸 모두 정답 ⑤펼친 3D 화면에서 모든 면의 넓이 라벨 보기 — 1가지마다 1점`, 5, f => best(f));
     add('도형 2개 이상', '활동 완료', '①~⑤를 모두 마친 도형이 2개 이상', 1, f => full(f) >= 2 ? 1 : 0);
+  },
+  'lesson-7-simB:1': (add, u) => {   // 뿔 겉넓이 › 시뮬레이션: 원뿔 (6점)
+    const anyB = (f, nm) => (f.raw(u, 'b') || []).some(x => String(x).endsWith(':' + nm));
+    add('3D 화면·펼치기', '조작', '3D 화면과 [📂 펼치기] 버튼을 모두 조작하기', 1, f => f.anyV(u) && anyB(f, '📂 펼치기') ? 1 : 0);
+    add('🔍 원뿔 탐구', '탐색', '[🔍 원뿔 탐구]를 누르고 [🔄 굴리기] 누르기', 1, f => anyB(f, '🔄 굴리기') ? 1 : 0);   // [🔄 굴리기]는 원뿔 탐구 영역 안에만 있음
+    add('🔍 원뿔 탐구', '활동 완료', '알게 된 점의 단어 카드를 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
+    add('🧮 겉넓이 계산하기', '빈칸 입력', '[🧮 겉넓이 계산하기]를 누르고 빈칸 3개를 모두 채워 [✓ 확인] 누르기', 1, f => f.flags(u, 'fill:') ? 1 : 0);
+    add('🧮 겉넓이 계산하기', '확인·제출', '입력한 답이 모두 정답', 1, f => f.flags(u, 'ok:') ? 1 : 0);
+    add('크기·슬라이더', '조작', '원뿔의 크기를 바꾸고, 원뿔 탐구의 슬라이더 2개(반지름·모선)를 모두 조작하기', 1, f => f.flags(u, 'size:') && f.flag(u, 'rc:r') && f.flag(u, 'rc:l') ? 1 : 0);
+  },
+  'lesson-7-simB:2': (add, u) => {   // 뿔 겉넓이 › 뿔의 겉넓이 (개념)
+    add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
+    add('(공통)', '활동 완료', '[✏️ 개념 확인하기]를 눌러 단어 카드를 모두 채우기', 1, f => f.flag(u, 'word') ? 1 : 0);
+  },
+  'lesson-7-simB:3': (add, u) => {   // 뿔 겉넓이 › 겉넓이 계산 (6점)
+    [['사각뿔 문제', 0], ['원뿔 문제', 1]].forEach(([nm, i]) => {
+      add(nm, '빈칸 입력', '빈칸 5개(전개도 2개 + 표 3개)를 모두 입력하고 [📤 제출] 누르기', 1, f => f.flag(u, `ex${i}:sub`) ? 1 : 0);
+      add(nm, '확인·제출', '제출한 답이 모두 정답', 1, f => f.flag(u, `ex${i}:ok`) ? 1 : 0);
+    });
+    add('정답 보기', '확인·제출', '[👀 정답 보기] 버튼 2개를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
+    add('연습장', '활동 완료', '연습장을 열어 식 쓰기 (손글씨 또는 키보드)', 1, f => f.flag(u, 'pad') ? 1 : 0);
+  },
+  'lesson-7-simB:4': (add, u) => {   // 뿔 겉넓이 › 생활 문제: 고깔모자 (3점)
+    add('(공통)', '빈칸 입력', '빈칸 3개를 모두 채우기', 1, f => f.flag(u, 'ex0:fill') ? 1 : 0);
+    add('(공통)', '확인·제출', '[📤 제출]한 답이 모두 정답', 1, f => f.flag(u, 'ex0:ok') ? 1 : 0);
+    add('정답 보기', '확인·제출', '[👀 정답 보기] 누르기', 1, f => f.flag(u, 'ex0:sol') ? 1 : 0);
+  },
+  'lesson-7-simB:5': (add, u) => {   // 뿔 겉넓이 › 도전 문제: 원뿔대 (4점)
+    add('원뿔대 전개도', '빈칸 입력', '문제(전개도)의 빈칸 4개를 모두 채우기', 1, f => f.flag(u, 'net') ? 1 : 0);
+    add('방법 1', '빈칸 입력', '방법 1의 빈칸 4개를 모두 채우기', 1, f => f.flag(u, 'ex0:fill') ? 1 : 0);
+    add('방법 2', '빈칸 입력', '방법 2의 빈칸 4개를 모두 채우기', 1, f => f.flag(u, 'ex1:fill') ? 1 : 0);
+    add('정답 보기', '확인·제출', '방법 1, 2의 [👀 정답 보기]를 모두 누르기', 1, f => f.flag(u, 'ex0:sol') && f.flag(u, 'ex1:sol') ? 1 : 0);
   },
   'lesson-7-sim:2': (add, u) => {   // 기둥의 겉넓이 (개념)
     add('(전체)', '탐색', '소활동 열어서 살펴보기', 1, f => f.seen(u, -1) ? 1 : 0);
