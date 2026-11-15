@@ -14733,7 +14733,7 @@ const CLS_SCORE_LEAVES = (() => { const out = [];
     const path = u.short ? `${ln}-${u.si + 1}-${u.short.replace(')', '')}` : `${ln}-${u.si + 1}`;
     const base = { u, lesson:L.title, step:`${u.si + 1}. ${u.step}`, sub:u.short ? `${u.short} ${u.label}` : '', path };
     const add = (det, kind, crit, max, test) => out.push({ ...base, det, kind, crit, max, test });
-    if(c.quiz){ add('확인 퀴즈', '퀴즈', `${c.quiz}문항을 모두 풀고 결과 보기`, c.quiz, f => f.quiz(u.lesson) ? c.quiz : 0); return; }
+    if(c.quiz){ add('확인 퀴즈', '퀴즈', `${c.quiz}문항을 모두 풀고 결과 보기`, 3, f => f.quiz(u.lesson) ? 3 : 0); return; }   // 확인 퀴즈: 주제마다 3점
     if(c.l0c){   // 0. 복습 › 개념: 도형 탭 7개가 세부활동
       const last = c.det.length - 1;
       c.det.forEach((d, i) => {
