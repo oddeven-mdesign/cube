@@ -5047,6 +5047,7 @@ function l0SetupSort(wrap){
       card.setAttribute('aria-label', `${name}, ${bin.dataset.bin} 상자에 넣음`);
       $('.items', bin).appendChild(card);
       placed++; score.textContent = `${placed} / ${L0_SORT_ITEMS.length}`;
+      if(placed === L0_SORT_ITEMS.length) clsFlagHit('lesson-0-sim-card:2', 'sort');   // 활동 점수: 10개 모두 분류
       fb.className = 'l0-sort-fb ok';
       fb.innerHTML = placed === L0_SORT_ITEMS.length
         ? '🎉 모두 바르게 분류했어! 원기둥은 기둥, 원뿔은 뿔 무리에 들어간다는 것도 기억해 두자.'
@@ -14716,6 +14717,8 @@ const CLS_SCORE_FX = {"lesson-0-goal-card":[[[],0,0]],"lesson-0-think-card":[[[]
 const CLS_VIEW_BTN = new Set(['autoRotate', 'reset', 'faceColor', 'edges', 'vertices', 'transparent', 'info', '🏷️ 면 이름', '🔗 회전 동기화', '개수 보기']);
 Object.entries(CLS_SCORE_FX).forEach(([k, v]) => { if(CLS_SCORE_CAT[k]) CLS_SCORE_CAT[k].fx = v.map(([b, s, n]) => ({ b:b.filter(x => !CLS_VIEW_BTN.has(x)), s, v:n })); });
 const CLS_TOOL_NAME = { autoRotate:'🔄 자동 회전', reset:'🎯 처음 위치로', faceColor:'🎨 면 색칠', edges:'✏️ 모서리 강조', vertices:'🔴 꼭짓점 강조', transparent:'👻 투명도', info:'📋 개수 보기' };
+/* 소활동 안의 추가 '활동 완료' 기준: [신호 이름, 완료 기준, 배점] */
+const CLS_EXTRA_DONE = { 'lesson-0-sim-card:2':['sort', '카드 10개를 모두 바르게 분류하기', 1] };
 const CLS_TASK_TEXT = {
   'lesson-0-think-card':'6개 물건의 입체도형을 모두 맞히기', 'lesson-0-concept-card':'모든 도형의 개념 확인 마치기',
   'lesson-1-think-card':'주령구의 면 14개를 모두 찾기', 'lesson-2-think-card':'질문 1·2를 모두 해결하기',
@@ -14764,6 +14767,7 @@ const CLS_SCORE_LEAVES = (() => { const out = [];
     if(c.inp) add('(공통)', '빈칸 입력', `빈칸 ${c.inp}개를 모두 채우기`, 1, f => f.filled(u) >= c.inp ? 1 : 0);
     (c.chk || []).forEach(lb => add('(공통)', '확인·제출', `[${lb}] 버튼 누르기`, 1, f => f.checked(u, lb) ? 1 : 0));
     if(CLS_TASK_TEXT[u.key]) add('(공통)', '활동 완료', CLS_TASK_TEXT[u.key], 1, f => f.done(u) ? 1 : 0);
+    const ex = CLS_EXTRA_DONE[u.key]; if(ex) add('(공통)', '활동 완료', ex[1], ex[2], f => f.flag(u, ex[0]) ? ex[2] : 0);
   });
   return out; })();
 /** 학생 진행 기록(pg) → 칸별 점수 */
@@ -14781,6 +14785,7 @@ function clsScoreFacts(pg){
     },
     used: (u, di) => has(act[u.key + '|d'], di),
     part: (u, id) => has(act[u.key + '|p'], id),
+    flag: (u, nm) => has(act[u.key + '|f'], nm),
     btn: (u, id) => has(act[u.key + '|b'], id),
     sliders: (u, i) => new Set((act[u.key + '|s'] || []).map(String).filter(x => x.split(':')[0] === String(i))).size,
     views: (u, i) => new Set((act[u.key + '|v3'] || []).map(String).filter(x => x.split(':')[0] === String(i))).size,
@@ -14829,6 +14834,8 @@ function clsComposition(){
   return { action:'composition', auth:clsPwHash(), head, rows, summary, widths:[48, 150, 140, 190, 170, 80, 300, 48, 280, 260] };
 }
 /** 0. 복습 › 개념: 도형 탭 열기(t)·개념 확인 마침(k) 기록 */
+/** 활동 안의 '끝까지 마침' 신호 기록 (예: 분류 활동 10개 모두) */
+function clsFlagHit(unit, name){ try{ if(isStudent()) clsActAdd(unit, 'f', name); }catch(e){} }
 function clsConceptHit(kind, i){ try{ if(isStudent()) clsActAdd('lesson-0-concept-card', kind, i); }catch(e){} }
 /* 이 기능 전에 마친 개념 확인도 점수에 넣기 (이 기기에 남은 기록) */
 setTimeout(() => { if(!isStudent()) return; try{ const v = JSON.parse(safeStorage.get(L0C_KEY) || '[]'); (Array.isArray(v) ? v : []).forEach((x, i) => x && clsConceptHit('k', i)); }catch(e){} }, 3000);
