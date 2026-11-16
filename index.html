@@ -2642,7 +2642,7 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 .cls-sc .ws-bar{position:relative;display:inline-block;width:60px;height:9px;border-radius:99px;background:#ECEFF1;overflow:hidden}
 .cls-sc .ws-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#FFB74D,#43A047)}
 .cls-sc .sc-at{color:#78909C;font-size:.76rem}
-.who-sc{display:inline-flex;align-items:center;gap:5px;margin-left:4px;padding-left:9px;border-left:1.5px solid var(--line);font-size:.82rem;white-space:nowrap}
+.who-sc{display:inline-flex;align-items:center;gap:5px;margin-right:4px;padding-right:9px;border-right:1.5px solid var(--line);font-size:.82rem;white-space:nowrap}
 .who-sc[hidden]{display:none}
 .who-sc .ws-lab{color:var(--muted,#607D8B);font-weight:700}
 .who-sc .ws-bar{position:relative;width:86px;height:10px;border-radius:99px;background:#ECEFF1;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
@@ -14717,7 +14717,7 @@ document.addEventListener('click', e => {
 function clsWho(){
   document.querySelectorAll('.lesson > .lesson-hero').forEach(h => {
     let w = h.querySelector(':scope > .who-box'); if(!w){ w = el('div', { class:'who-box' }); h.appendChild(w); }
-    if(isStudent()) w.innerHTML = `<span class="who-ic" aria-hidden="true">🧑‍🎓</span><b>${clsEsc(cls.user.sid)}</b><span>${clsEsc(cls.user.name)}</span><span class="who-sc" data-l="${(h.closest('.lesson') || {}).id || ''}" hidden></span><button class="btn who-edit" type="button">✏️ 수정</button>`;
+    if(isStudent()) w.innerHTML = `<span class="who-sc" data-l="${(h.closest('.lesson') || {}).id || ''}" hidden></span><span class="who-ic" aria-hidden="true">🧑‍🎓</span><b>${clsEsc(cls.user.sid)}</b><span>${clsEsc(cls.user.name)}</span><button class="btn who-edit" type="button">✏️ 수정</button>`;
     else if(cls.role === 'admin') w.innerHTML = `<span class="who-ic" aria-hidden="true">👩‍🏫</span><b>관리자</b><span>${cls.mode === 'manage' ? '수업 관리' : cls.mode === 'monitor' ? '모니터링' : '수업 진행'}</span><button class="btn who-mon" type="button">📊 모니터링</button><button class="btn who-admin" type="button">⚙️ 수업 관리</button>`;
     else w.innerHTML = '';
     let lo = h.querySelector(':scope > .who-out');
