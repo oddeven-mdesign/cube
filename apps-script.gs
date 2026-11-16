@@ -32,6 +32,7 @@ const SHEET_CFG = '수업설정';
 const SHEET_SCORE = '활동 점수';
 const SHEET_SCORE_STD = '활동 점수 기준';
 const SHEET_COMP = '활동 구성';
+const SHEET_TOPIC = '주제별 점수';   // 활동 점수 탭의 [주제] 합계만 모아 한눈에 보기 (자동으로 다시 씀)
 const SCORE_FIXED = ['학번', '이름', '갱신 시각', '총점', '만점', '달성률(%)'];
 const DEFAULT_PW_HASH = '445cf6a7';   // 처음 비밀번호(1234)를 웹앱과 같은 방식으로 바꾼 값 — 아래 hashPw_('1234')와 같다
 
@@ -259,7 +260,7 @@ function saveScores_(d) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const head = SCORE_FIXED.concat(cols);
   const sh = sheet_(ss, SHEET_SCORE, head);
-  if ((d.items || []).length <= 3 && fastScores_(sh, head, d)) { writeScoreStd_(ss, cols, max, d.crit || []); return { ok: true, fast: true }; }
+  if ((d.items || []).length <= 3 && fastScores_(sh, head, d)) { writeScoreStd_(ss, cols, max, d.crit || []); writeTopicSummary_(ss); return { ok: true, fast: true }; }
   // 지금 표 읽기 (열 이름으로 맞춰 옮겨 담기 → 활동 구성이 바뀌어도 예전 값이 섞이지 않음)
   const lastR = sh.getLastRow(), lastC = Math.max(sh.getLastColumn(), 1);
   const old = lastR >= 1 ? sh.getRange(1, 1, lastR, lastC).getValues() : [[]];
@@ -299,7 +300,29 @@ function saveScores_(d) {
   sh.setFrozenRows(2); sh.setFrozenColumns(2);
   if (lastC > head.length) sh.getRange(1, head.length + 1, Math.max(lastR, all.length), lastC - head.length).clearContent();
   writeScoreStd_(ss, cols, max, d.crit || []);
+  writeTopicSummary_(ss);
   return { ok: true, students: rows.length };
+}
+/** '주제별 점수' 탭: 학생마다 주제별 활동 점수 합계·총점 (활동 점수 탭에서 다시 만듦) */
+function writeTopicSummary_(ss) {
+  const src = ss.getSheetByName(SHEET_SCORE); if (!src || src.getLastRow() < 2) return;
+  const all = src.getRange(1, 1, src.getLastRow(), src.getLastColumn()).getValues();
+  const h = all[0].map(String), tIdx = [];
+  h.forEach(function (x, i) { if (x.indexOf('[주제]') === 0) tIdx.push(i); });
+  const iT = h.indexOf('총점'), iM = h.indexOf('만점'), iA = h.indexOf('달성률(%)'), iU = h.indexOf('갱신 시각');
+  const head = ['학번', '이름', '갱신 시각'].concat(tIdx.map(function (i) { return h[i].replace(/^\[주제\]\s*/, ''); }), ['총점', '만점', '달성률(%)']);
+  const pick = function (r) { return [r[0], r[1], r[iU]].concat(tIdx.map(function (i) { return r[i]; }), [r[iT], r[iM], iA >= 0 ? r[iA] : '']); };
+  const mx = all[1] || [];
+  const maxRow = ['만점', '', ''].concat(tIdx.map(function (i) { return mx[i]; }), [mx[iT], mx[iM], 100]);
+  const rows = all.slice(2).filter(function (r) { return String(r[0]).replace(/^'/, '').trim(); }).map(pick);
+  let sh = ss.getSheetByName(SHEET_TOPIC); if (!sh) sh = ss.insertSheet(SHEET_TOPIC);
+  sh.clearContents();
+  const out = [head, maxRow].concat(rows);
+  sh.getRange(1, 1, out.length, head.length).setValues(out);
+  sh.getRange(1, 1, 1, head.length).setFontWeight('bold').setBackground('#FFF3E0').setWrap(true).setVerticalAlignment('middle');
+  sh.getRange(2, 1, 1, head.length).setFontWeight('bold').setBackground('#F5F5F5');
+  sh.getRange(1, 4, out.length, head.length - 3).setHorizontalAlignment('center');
+  sh.setFrozenRows(2); sh.setFrozenColumns(2);
 }
 /** 학생 한두 명 갱신: 제목 줄이 같으면 그 학생 줄만 고쳐 씀 (빠름) */
 function fastScores_(sh, head, d) {
