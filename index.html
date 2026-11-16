@@ -2631,6 +2631,31 @@ table.l7-calc tbody th,table.l7-calc thead th:first-child{text-align:center}
 .lesson-hero{position:relative}
 .who-box{position:absolute;z-index:4;top:10px;right:12px;display:flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:99px;background:rgba(255,255,255,.92);border:1.5px solid var(--line);font-size:.9rem;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .who-box:empty{display:none}
+.cls-sc-wrap{overflow:auto;max-height:340px;border:1.5px solid var(--line);border-radius:10px;margin-top:8px}
+.cls-sc{border-collapse:collapse;font-size:.82rem;min-width:100%}
+.cls-sc th,.cls-sc td{padding:5px 8px;border-bottom:1px solid #ECEFF1;text-align:center;white-space:nowrap}
+.cls-sc th{position:sticky;top:0;background:#FFF3E0;font-weight:800;z-index:1}
+.cls-sc th small{display:block;font-weight:600;color:#78909C}
+.cls-sc td.full{background:#E8F5E9;color:#2E7D32;font-weight:800}
+.cls-sc td.part{background:#FFF3E0;color:#E65100;font-weight:700}
+.cls-sc .sc-tot{display:flex;align-items:center;gap:5px;justify-content:center}
+.cls-sc .ws-bar{position:relative;display:inline-block;width:60px;height:9px;border-radius:99px;background:#ECEFF1;overflow:hidden}
+.cls-sc .ws-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#FFB74D,#43A047)}
+.cls-sc .sc-at{color:#78909C;font-size:.76rem}
+.who-sc{display:inline-flex;align-items:center;gap:5px;margin-left:4px;padding-left:9px;border-left:1.5px solid var(--line);font-size:.82rem;white-space:nowrap}
+.who-sc[hidden]{display:none}
+.who-sc .ws-lab{color:var(--muted,#607D8B);font-weight:700}
+.who-sc .ws-bar{position:relative;width:86px;height:10px;border-radius:99px;background:#ECEFF1;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.who-sc .ws-bar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:linear-gradient(90deg,#FFB74D,#43A047);transition:width .4s}
+.who-sc b{font-size:.9rem}
+.who-sc .ws-max{color:var(--muted,#607D8B)}
+@media (max-width:560px){.who-box{max-width:100%;flex-wrap:wrap;border-radius:16px}.who-sc .ws-lab{display:none}.who-sc .ws-bar{width:56px}}
+/* 활동 점수 표시: 만점 = 초록 체크, 만점이 아님 = 주황 원 (크기는 같음) */
+.sbadge.ok.part{background:#FB8C00;color:transparent}
+.cls-sc-ok,.cls-sc-part{position:relative}
+.cls-sc-ok::after,.cls-sc-part::after{position:absolute;top:-9px;right:-7px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:.72rem;font-weight:900;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:2;pointer-events:none;border:2px solid #fff;color:#fff}
+.cls-sc-ok::after{content:'✓';background:var(--ok)}
+.cls-sc-part::after{content:'';background:#FB8C00}
 .who-box .btn{min-height:30px;padding:2px 10px;font-size:.82rem;border-radius:99px}
 @media (max-width:560px){.who-box{position:static;margin:8px 0 0;align-self:flex-start;width:max-content}}
 /* 관리자가 잠근 활동 */
@@ -14559,7 +14584,7 @@ function clsReport(key, root, extra){
   cls.results[key] = rec; jset(CLS_KEY.results, cls.results);
   clsSend({ action:'record', sid:cls.user.sid, name:cls.user.name, sentAt:rec.at, item:rec,
     completedLessons:LESSONS.filter((_, i) => isCompleted(i)).length, snapshot:clsSnapshot(), quiz:state.scores, progress:clsProgress() });
-  clsStatusSoon(); clsScoreSoon();
+  clsStatusSoon(); clsScoreNow();   // 소활동·활동이 바뀌는 순간: 지금까지 한 활동으로 점수를 내어 보냄
 }
 /** 이어서 하기용 진행 상태 (구글 시트에 함께 저장 → 같은 학번·이름으로 다시 들어오면 불러옴) */
 function clsProgress(){
@@ -14692,7 +14717,7 @@ document.addEventListener('click', e => {
 function clsWho(){
   document.querySelectorAll('.lesson > .lesson-hero').forEach(h => {
     let w = h.querySelector(':scope > .who-box'); if(!w){ w = el('div', { class:'who-box' }); h.appendChild(w); }
-    if(isStudent()) w.innerHTML = `<span class="who-ic" aria-hidden="true">🧑‍🎓</span><b>${clsEsc(cls.user.sid)}</b><span>${clsEsc(cls.user.name)}</span><button class="btn who-edit" type="button">✏️ 수정</button>`;
+    if(isStudent()) w.innerHTML = `<span class="who-ic" aria-hidden="true">🧑‍🎓</span><b>${clsEsc(cls.user.sid)}</b><span>${clsEsc(cls.user.name)}</span><span class="who-sc" data-l="${(h.closest('.lesson') || {}).id || ''}" hidden></span><button class="btn who-edit" type="button">✏️ 수정</button>`;
     else if(cls.role === 'admin') w.innerHTML = `<span class="who-ic" aria-hidden="true">👩‍🏫</span><b>관리자</b><span>${cls.mode === 'manage' ? '수업 관리' : cls.mode === 'monitor' ? '모니터링' : '수업 진행'}</span><button class="btn who-mon" type="button">📊 모니터링</button><button class="btn who-admin" type="button">⚙️ 수업 관리</button>`;
     else w.innerHTML = '';
     let lo = h.querySelector(':scope > .who-out');
@@ -14845,6 +14870,26 @@ function clsStart(){
 }
 setInterval(() => { if(isStudent()) clsFetchCfg(); }, 10000);   // 10초마다 수업 설정 확인
 
+/* --- 수업 관리: 학생별 활동 점수 표 (구글 시트 '활동 점수' 탭) --- */
+async function clsLoadScoreTable(box){
+  const url = clsUrl(); if(!box) return;
+  if(!url){ box.innerHTML = '<p class="l0-muted">구글 시트 주소가 없어요. 아래 구글 시트 연결에서 주소를 넣어 주세요.</p>'; return; }
+  box.innerHTML = '<p class="l0-muted">불러오는 중…</p>';
+  try{
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + `action=allScores&auth=${encodeURIComponent(clsPwHash())}&t=${Date.now()}`);
+    const r = await res.json();
+    if(!r || !r.ok){ box.innerHTML = `<p class="l0-muted">⚠️ ${clsEsc((r && r.error) || '불러오지 못했어요. 앱스 스크립트를 새 버전으로 배포했는지 확인해 주세요.')}</p>`; return; }
+    if(!r.students.length){ box.innerHTML = '<p class="l0-muted">아직 기록된 학생이 없어요.</p>'; return; }
+    const H = r.head, iT = H.indexOf('총점'), iM = H.indexOf('만점'), iA = H.indexOf('갱신 시각');
+    const lc = H.map((h, i) => [h, i]).filter(([h]) => h.startsWith('[주제]'));
+    const num = v => (v === '' || v == null) ? '—' : Math.round(Number(v) * 100) / 100;
+    const head = `<tr><th>학번</th><th>이름</th><th>총점</th>${lc.map(([h, i]) => `<th title="${clsEsc(h)}">${clsEsc(h.replace('[주제] ', '').replace(/^(\d+)\.\s*/, '$1. '))}<small>${num(r.max[i])}점</small></th>`).join('')}<th>갱신</th></tr>`;
+    const rows = r.students.map(o => { const t = Number(o[iT]) || 0, mx = Number(o[iM]) || Number(r.max[iT]) || 0, p = mx ? Math.round(t / mx * 100) : 0;
+      return `<tr><td>${clsEsc(o[0])}</td><td>${clsEsc(o[1])}</td><td class="sc-tot"><span class="ws-bar"><i style="width:${p}%"></i></span><b>${num(t)}</b>/${num(mx)}</td>${lc.map(([h, i]) => { const v = Number(o[i]) || 0, m = Number(r.max[i]) || 0;
+        return `<td class="${m && v >= m ? 'full' : v ? 'part' : ''}">${num(o[i])}</td>`; }).join('')}<td class="sc-at">${clsEsc(String(o[iA] || '').slice(5, 16))}</td></tr>`; }).join('');
+    box.innerHTML = `<div class="cls-sc-wrap"><table class="cls-sc"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
+  }catch(e){ box.innerHTML = '<p class="l0-muted">⚠️ 불러오지 못했어요. 인터넷과 구글 시트 주소, 앱스 스크립트 배포(새 버전)를 확인해 주세요.</p>'; }
+}
 /* --- 수업 관리 --- */
 async function clsOpenAdmin(){
   document.querySelectorAll('.cls-admin').forEach(x => x.remove());
@@ -14863,6 +14908,10 @@ async function clsOpenAdmin(){
     <section><h3>🎛️ 수업 통제</h3>
       <label class="cls-switch big"><input type="checkbox" data-f="pause"${c.pause ? ' checked' : ''}><span>✋ 학생 화면 멈춤 (선생님 설명 시간)</span></label>
       <div class="cls-switches">${tg('answer', '👀 정답·풀이 보기 버튼 허용')}${tg('hint', '💡 힌트 버튼 허용')}${tg('pad', '📝 연습장 허용')}</div></section>
+    <section class="cls-scsec"><h3>📈 학생별 활동 점수</h3>
+      <p class="l0-muted cls-note">구글 시트 '활동 점수' 탭의 값이에요. 학생이 소활동·세부활동을 바꿀 때마다 갱신돼요.</p>
+      <div class="cls-row"><button class="btn" type="button" data-a="scload">🔄 새로 불러오기</button></div>
+      <div class="cls-sctable" aria-live="polite"></div></section>
     <section><h3>🔒 주제 · 활동 · 소활동 잠금</h3>
       <p class="l0-muted cls-note"><b>자동</b>: 앞의 주제·활동·소활동을 마치면 열려요. <b>열림</b>: 순서와 관계없이 열려요. <b>잠김</b>: 선생님이 열 때까지 잠겨요. (학생 모드에만 적용)</p>
       <div class="cls-row"><button class="btn" type="button" data-all="auto">전체 자동</button><button class="btn" type="button" data-all="open">전체 열림</button><button class="btn" type="button" data-all="lock">전체 잠김</button></div>
@@ -14873,6 +14922,7 @@ async function clsOpenAdmin(){
     <p class="cls-msg" aria-live="polite"></p>
     <div class="cls-row cls-foot"><button class="btn" type="button" data-a="run">▶ 수업 진행으로</button><button class="btn" type="button" data-a="monitor">📊 모니터링</button><button class="btn" type="button" data-a="logout">🔁 첫 화면으로</button><button class="btn primary" type="button" data-a="save">💾 저장하고 적용</button></div>`, 'cls-admin');
   const msg = $('.cls-msg', m);
+  clsLoadScoreTable($('.cls-sctable', m)); $('[data-a="scload"]', m).addEventListener('click', () => clsLoadScoreTable($('.cls-sctable', m)));
   const setAll = (v, lid) => m.querySelectorAll(`select[data-key]${lid ? `[data-l="${lid}"]` : ''}`).forEach(s => { s.value = v; });
   m.querySelectorAll('[data-bulk]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); setAll(b.dataset.bulk, b.dataset.l); }));
   m.querySelectorAll('[data-all]').forEach(b => b.addEventListener('click', () => setAll(b.dataset.all)));
@@ -15332,7 +15382,7 @@ setTimeout(() => { if(!isStudent()) return; try{ const v = JSON.parse(safeStorag
 function clsActAdd(unit, kind, v){
   if(!unit) return false; const k = unit + '|' + kind, a = cls.act[k] || [];
   if(a.map(String).includes(String(v))) return false;
-  cls.act[k] = [...a, v]; jset(CLS_KEY.act, cls.act); clsScoreSoon(); return true;
+  cls.act[k] = [...a, v]; jset(CLS_KEY.act, cls.act); clsScVer++; clsScoreUISoon(); return true;
 }
 const CLS_GX = '.segmented,.viewer-toolbar,.l0-simtabs,.l5-tabs,.l0-parts,.quiz-options,.step-nav';
 function clsUnitOf(t){
@@ -15355,7 +15405,7 @@ function clsActTrack(e){
   if(e.type === 'pointerdown'){ if(inView){ const k = cvIdx(); if(k >= 0) clsDrag = { x:e.clientX, y:e.clientY, key:u.key, v:`${dcur()}:${k}` }; } return; }
   if(e.type === 'wheel'){ if(inView){ const k = cvIdx(); if(k >= 0) clsActAdd(u.key, 'v3', `${dcur()}:${k}`); } return; }   // 3D 화면 확대·축소
   const b = t.closest('button'); if(!b || b.disabled) return;
-  if(dg && dg.contains(b)) return;                       // 세부활동 고르기 → '탐색'으로 따로 기록
+  if(dg && dg.contains(b)){ if(!clsOn(b)) clsScoreNow(); return; }   // 세부활동 고르기 → '탐색'으로 따로 기록 (다른 세부활동으로 바뀌는 순간 점수 보내기)
   { const lb0 = b.textContent.replace(/\s+/g, ' ').trim();  // 기능 버튼: '세부활동번호:버튼'으로 기록
     clsActAdd(u.key, 'b', `${dcur()}:${b.dataset.tool || lb0.replace(/\s*(켜짐|꺼짐)$/, '')}`); }
   if(c.parts && b.closest('.l0-parts')){                 // 구성 요소 버튼: '세부활동번호:도형:요소'로 기록
@@ -15392,7 +15442,73 @@ function clsScoreSend(){
   const r = clsScoreCalc(clsProgress()), sig = r.got.join('');
   if(sig === clsScSig) return; clsScSig = sig; clsScAt = Date.now();
   clsSend({ action:'scores', items:[{ sid:cls.user.sid, name:cls.user.name, total:r.total, got:r.got }], cols:r.cols, max:r.maxes, maxTotal:r.max, crit:r.crit, sentAt:new Date().toISOString() });
+  clearTimeout(clsMyT); clsMyT = setTimeout(clsMyScoresFetch, 8000);   // 시트에 반영된 점수를 조금 뒤에 다시 읽어 옴
 }
+/** 소활동·세부활동이 바뀔 때 바로 점수 보내기 (시트에서는 기존 값이 크거나 같으면 그대로 둠) */
+function clsScoreNow(){ if(!isStudent()) return; clearTimeout(clsScT); clsScoreSend(); }
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') clsScoreNow(); });   // 창을 닫거나 다른 앱으로 갈 때도 한 번
+
+/* --- 활동 점수 보기 (학생): 구글 시트 '활동 점수' 탭 + 이 기기에서 한 활동 중 큰 값 --- */
+var clsMyT = 0, clsScVer = 0, clsScCache = null, clsLeafNames = null, clsScUIT = 0;
+const CLS_SHEETSC_KEY = 'ipche-sheet-scores';
+function clsSheetSc(){ const o = jget(CLS_SHEETSC_KEY, {}); return (cls.user && o.who === cls.user.sid + '|' + cls.user.name && o.scores) || {}; }
+async function clsMyScoresFetch(){
+  const url = clsUrl(); if(!isStudent() || !cls.user || !url) return;
+  try{
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + `action=myScores&sid=${encodeURIComponent(cls.user.sid)}&name=${encodeURIComponent(cls.user.name)}&t=${Date.now()}`);
+    const r = await res.json(); if(!r || !r.ok) return;
+    jset(CLS_SHEETSC_KEY, { who:cls.user.sid + '|' + cls.user.name, scores:r.scores || {}, at:Date.now() }); clsScVer++; clsScoreUISoon();
+  }catch(e){ /* 인터넷이 끊김: 이 기기 점수로 표시 */ }
+}
+function clsScView(){
+  if(clsScCache && clsScCache.v === clsScVer) return clsScCache;
+  if(!clsLeafNames) clsLeafNames = clsScoreCalc({}).cols.filter(c => c.startsWith('[세부]'));
+  const f = clsScoreFacts(clsProgress()), sh = clsSheetSc();
+  const got = CLS_SCORE_LEAVES.map((x, i) => { let v = 0; try{ v = x.test(f) || 0; }catch(e){} return Math.min(x.max, Math.max(v, Number(sh[clsLeafNames[i]]) || 0)); });
+  return clsScCache = { v:clsScVer, got };
+}
+function clsScSum(pred){ const g = clsScView().got; let a = 0, b = 0; CLS_SCORE_LEAVES.forEach((x, i) => { if(pred(x)){ a += g[i]; b += x.max; } }); return [Math.round(a * 100) / 100, Math.round(b * 100) / 100]; }
+const clsScFull = ([a, b]) => b > 0 && a >= b - 1e-9;
+function clsScoreUISoon(){ if(!isStudent()) return; clearTimeout(clsScUIT); clsScUIT = setTimeout(clsScoreUI, 350); }
+function clsScoreUI(){
+  if(!isStudent()) return;
+  // ① 주제 제목 상자: 인적사항 옆 활동 점수 막대
+  document.querySelectorAll('.who-sc[data-l]').forEach(w => {
+    const [a, b] = clsScSum(x => x.u.lesson === w.dataset.l); if(!b){ w.hidden = true; return; }
+    const pct = Math.round(a / b * 100), t = `${a} / ${b}점`;
+    if(w.dataset.t === t) return; w.dataset.t = t; w.hidden = false;
+    w.innerHTML = `<span class="ws-lab">활동 점수</span><span class="ws-bar" role="img" aria-label="활동 점수 ${a}점, 만점 ${b}점"><i style="width:${pct}%"></i></span><b>${a}</b><span class="ws-max">/ ${b}점</span>`;
+  });
+  const mark = (em, sc) => { if(em) em.classList.toggle('part', sc[1] > 0 && !clsScFull(sc)); };
+  // ② 활동(단계) 버튼
+  document.querySelectorAll('.lesson[id]').forEach(sec => {
+    const L = CLS_CATALOG.find(x => x.id === sec.id); if(!L) return;
+    const bs = sec.querySelectorAll('.step-bar .step-btn'); if(!bs.length) return;
+    let steps = null;
+    bs.forEach(b => { const em = b.querySelector('.sbadge.ok'); if(!em) return; steps = steps || collectLessonSteps(sec);
+      const st = steps[+b.dataset.i]; const si = st ? L.steps.findIndex(x => x.card === st.card.id) : -1; if(si < 0) return;
+      mark(em, clsScSum(x => x.u.lesson === L.id && x.u.si === si)); });
+  });
+  // ③ 소활동 탭
+  document.querySelectorAll('.l0-simtabs').forEach(nav => {
+    const secs = [...nav.parentElement.children].filter(e => e.tagName === 'SECTION');
+    nav.querySelectorAll('.l0-simtab').forEach((t, j) => { const k = secs[j] && clsSecKey(secs[j]); if(k) mark(t.querySelector('.sbadge.ok'), clsScSum(x => x.u.key === k)); });
+  });
+  // ④ 세부활동 버튼
+  const roots = [...document.querySelectorAll('section.l0-sub, section.l5-act, section.l0-simsec')].map(r => [clsSecKey(r), r])
+    .concat([...document.querySelectorAll('article.card[id]')].filter(c => CLS_SCORE_CAT[c.id]).map(c => [c.id, c]));
+  roots.forEach(([key, root]) => {
+    const c = key && CLS_SCORE_CAT[key]; if(!c || !c.det) return;
+    const bs = clsDetailBtns(clsDetailGroup(root)), seen = new Set(cls.detail[key] || []);
+    bs.forEach((b, i) => { const lab = c.det[i]; const sc = lab ? clsScSum(x => x.u.key === key && x.det === lab) : [0, 0];
+      const em = b.querySelector('.sbadge.ok'); if(em){ mark(em, sc); return; }
+      const show = sc[1] > 0 && seen.has(i) && !clsOn(b), full = clsScFull(sc);
+      b.classList.toggle('cls-sc-ok', show && full); b.classList.toggle('cls-sc-part', show && !full); });
+  });
+}
+if(typeof MutationObserver === 'function') new MutationObserver(() => { if(isStudent()) clsScoreUISoon(); })
+  .observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['class', 'aria-pressed', 'aria-selected'] });
+setTimeout(() => { clsMyScoresFetch(); clsScoreUISoon(); }, 2500);
 
 /* --- 모니터링 (관리자) --- */
 const CLS_MON = { view:null, live:false, timer:0 };

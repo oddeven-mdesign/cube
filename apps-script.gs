@@ -69,6 +69,8 @@ function doGet(e) {
   if (action === 'restore') return json_(restore_(e.parameter.sid, e.parameter.name));
   if (action === 'monitor') return json_(readMonitor_(e.parameter.auth));
   if (action === 'allProgress') return json_(allProgress_(e.parameter.auth));
+  if (action === 'myScores') return json_(myScores_(e.parameter.sid, e.parameter.name));
+  if (action === 'allScores') return json_(allScores_(e.parameter.auth));
   return json_({ ok: true, message: '입체도형 학습 기록 수집 중' });
 }
 
@@ -375,6 +377,33 @@ function saveComposition_(d) {
   return { ok: true, rows: rows.length };
 }
 /** 관리자 '활동 점수 다시 계산'용: 학생마다 이어하기 데이터 */
+/* ---------- 활동 점수 읽기 ----------
+ * myScores: 학생 한 명의 세부활동 점수 { 열 이름: 점수 } (학생 화면의 점수 막대·완료 표시용)
+ * allScores: 모든 학생의 총점·주제별 점수 (관리자 수업 관리 화면용)
+ */
+function scoreTable_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_SCORE);
+  if (!sh || sh.getLastRow() < 3) return null;
+  const all = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues();
+  return { head: all[0].map(String), max: all[1], rows: all.slice(2) };
+}
+function myScores_(sid, name) {
+  sid = String(sid || '').trim(); name = String(name || '').trim();
+  if (!sid) return { ok: false, error: 'no sid' };
+  const t = scoreTable_(); if (!t) return { ok: true, scores: {} };
+  const row = t.rows.find(function (r) { return String(r[0]).replace(/^'/, '').trim() === sid && String(r[1]).trim() === name; });
+  const out = {};
+  if (row) t.head.forEach(function (h, i) { if (h.indexOf('[세부]') === 0 && row[i] !== '' && row[i] != null) out[h] = Number(row[i]) || 0; });
+  return { ok: true, scores: out, at: row ? String(row[2] || '') : '' };
+}
+function allScores_(auth) {
+  if (!monAuth_(auth)) return { ok: false, error: '관리자 비밀번호가 맞지 않아요. 다시 로그인해 주세요.' };
+  const t = scoreTable_(); if (!t) return { ok: true, head: [], max: [], students: [] };
+  const keep = []; t.head.forEach(function (h, i) { if (i < SCORE_FIXED.length || h.indexOf('[주제]') === 0) keep.push(i); });
+  return { ok: true, head: keep.map(function (i) { return t.head[i]; }), max: keep.map(function (i) { return t.max[i]; }),
+    students: t.rows.filter(function (r) { return String(r[0]).replace(/^'/, '').trim(); })
+      .map(function (r) { return keep.map(function (i) { return i === 0 ? String(r[0]).replace(/^'/, '') : r[i] instanceof Date ? String(r[i]) : r[i]; }); }) };
+}
 function allProgress_(auth) {
   if (!monAuth_(auth)) return { ok: false, error: '관리자 비밀번호가 맞지 않아요. 다시 로그인해 주세요.' };
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_BEST);
